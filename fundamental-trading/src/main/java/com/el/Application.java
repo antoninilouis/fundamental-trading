@@ -2,7 +2,7 @@ package com.el;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -24,18 +24,34 @@ public class Application
         return 0.0;
     }
 
-    public static Map<String, String> extractSPReturns() {
+    public static Map<String, Double> extractSPReturns() {
         // Get prices
         return byBufferedReader(
-                "SP500 prices (daily)",
-                DupKeyOption.OVERWRITE
+            "SP500 prices (daily)",
+            DupKeyOption.OVERWRITE
         );
         // todo: Get returns
     }
 
-    public static void extractStockReturns() {
+    public static Map<String, Double> extractStockReturns() {
         // Get prices
-        // todo: Get returns
+        return byBufferedReader(
+            "BRK-B prices (daily)",
+            DupKeyOption.OVERWRITE
+        );
+    }
+
+    public static Map<String, Double> extractTBillsReturns() {
+        return byBufferedReader(
+                "t-bills returns (daily)",
+                DupKeyOption.OVERWRITE
+        );
+    }
+
+    public static void toReturns(final Map<String, Double> prices) {
+        for (int i = 0; i < prices.size(); i++) {
+
+        }
     }
 
     public static void calculateStockBeta() {
@@ -45,13 +61,6 @@ public class Application
 
     public static void calculateExpectedReturnsOnMarket() {
         // todo: geometric average on the period of evaluation
-    }
-
-    public static Map<String, String> extractTBillsReturns() {
-        return byBufferedReader(
-                "t-bills returns (daily)",
-                DupKeyOption.OVERWRITE
-        );
     }
 
     // Utils
@@ -69,8 +78,8 @@ public class Application
         return list;
     }
 
-    public static Map<String, String> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
-        HashMap<String, String> map = new HashMap<>();
+    public static Map<String, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
+        LinkedHashMap<String, Double> map = new LinkedHashMap<>();
         String line;
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(filePath));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
@@ -79,10 +88,14 @@ public class Application
                 if (keyValuePair.length > 1) {
                     String key = keyValuePair[0];
                     String value = keyValuePair[1];
+                    var converted = Double.valueOf(value);
+                    if (converted.isNaN()) {
+                        continue;
+                    }
                     if (DupKeyOption.OVERWRITE == dupKeyOption) {
-                        map.put(key, value);
+                        map.put(key, converted);
                     } else if (DupKeyOption.DISCARD == dupKeyOption) {
-                        map.putIfAbsent(key, value);
+                        map.putIfAbsent(key, converted);
                     }
                 } else {
                     System.out.println("No Key:Value found in line, ignoring: " + line);
