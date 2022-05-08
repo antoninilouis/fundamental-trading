@@ -1,5 +1,7 @@
 package com.el;
 
+import org.apache.commons.math3.stat.regression.SimpleRegression;
+
 import java.io.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -21,11 +23,11 @@ public class Application
     {
     }
 
-    public static double computeCAPM() {
+    static double computeCAPM() {
         return 0.0;
     }
 
-    public static Map<LocalDate, Double> extractSPReturns() {
+    static Map<LocalDate, Double> extractSPReturns() {
         // Get prices
         final Map<LocalDate, Double> prices = byBufferedReader(
                 "SP500 prices (daily)",
@@ -35,7 +37,7 @@ public class Application
         return prices;
     }
 
-    public static Map<LocalDate, Double> extractStockReturns() {
+    static Map<LocalDate, Double> extractStockReturns() {
         // Get prices
         final Map<LocalDate, Double> prices = byBufferedReader(
             "BRK-B prices (daily)",
@@ -45,14 +47,14 @@ public class Application
         return prices;
     }
 
-    public static Map<LocalDate, Double> extractTBillsReturns() {
+    static Map<LocalDate, Double> extractTBillsReturns() {
         return byBufferedReader(
             "t-bills returns (daily)",
             DupKeyOption.OVERWRITE
         );
     }
 
-    public static void toReturnPercents(final Map<LocalDate, Double> prices) {
+    static void toReturnPercents(final Map<LocalDate, Double> prices) {
         final var iterator = prices.entrySet().iterator();
         if (!iterator.hasNext()) {
             return;
@@ -68,14 +70,22 @@ public class Application
         }
     }
 
-    public static void calculateStockBeta() {
-        // todo: do linear regression on stock/s&p returns
-        //  /!\ caveats only include days which have returns in both SP500 & stock in the regression
-
-        // build a map: date -> returns1_at_date, returns2_at_date
+    static double calculateStockBeta(
+        final Map<LocalDate, Double> stockReturns,
+        final Map<LocalDate, Double> marketReturns
+    ) {
+        final var reg = new SimpleRegression();
+        for (var entry : stockReturns.entrySet()) {
+            if (!marketReturns.containsKey(entry.getKey())) {
+                continue;
+            }
+            // SimpleRegression.addData
+            reg.addData(entry.getValue(), marketReturns.get(entry.getKey()));
+        }
+        return reg.getSlope();
     }
 
-    public static void calculateExpectedReturnsOnMarket() {
+    static void calculateExpectedReturnsOnMarket() {
         // todo: geometric average on the period of evaluation
     }
 
@@ -94,7 +104,7 @@ public class Application
         return list;
     }
 
-    public static Map<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
+    private static Map<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
         LinkedHashMap<LocalDate, Double> map = new LinkedHashMap<>();
         String line;
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(filePath));
