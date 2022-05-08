@@ -13,12 +13,18 @@ public class ApplicationTest
     public void testLoadResources()
     {
         final var spReturns = Application.extractSPReturns();
-        assertEquals(spReturns.size(), 2608);
+        assertEquals(spReturns.size(), 2516);
         final var tBillsReturns =  Application.extractTBillsReturns();
-        assertEquals(tBillsReturns.size(), 17826);
+        assertEquals(tBillsReturns.size(), 17075);
 //        App.extractStockReturns();
 //        App.calculateStockBeta();
 //        App.calculateExpectedReturnsOnMarket();
+    }
+
+    @Test
+    public void test()
+    {
+        var d = Double.valueOf("NaN");
     }
 
 }

@@ -25,3 +25,9 @@ replay_pid*
 
 # Intellij
 .idea/
+
+# Maven
+target/
+
+# Project
+rawdata/
