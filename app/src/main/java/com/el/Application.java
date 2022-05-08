@@ -48,9 +48,19 @@ public class Application
         );
     }
 
-    public static void toReturns(final Map<String, Double> prices) {
-        for (int i = 0; i < prices.size(); i++) {
-
+    public static void toReturnPercents(final Map<String, Double> prices) {
+        final var iterator = prices.entrySet().iterator();
+        if (!iterator.hasNext()) {
+            return;
+        }
+        var firstEntry = iterator.next();
+        var previousValue = firstEntry.getValue();
+        firstEntry.setValue(0.0);
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            var tmp = entry.getValue();
+            entry.setValue(entry.getValue() / previousValue - 1);
+            previousValue = tmp;
         }
     }
 
