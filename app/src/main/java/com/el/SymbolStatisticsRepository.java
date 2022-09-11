@@ -11,24 +11,31 @@ public class SymbolStatisticsRepository {
 
     private final Collection<String> symbols;
     private final LinkedHashMap<LocalDate, Double> indexPrices;
-    private final LinkedHashMap<LocalDate, Double> stockPrices;
-    private final LinkedHashMap<LocalDate, Double> stockDividends;
-    private final Map<LocalDate, Double> tbReturns;
-    private final double returnOnEquity;
-    private final double dividendPayoutRatio;
+    private final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices;
+    private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends;
+    private final LinkedHashMap<LocalDate, Double> tbReturns;
+    private final Map<String, Double> returnOnEquity;
+    private final Map<String, Double> dividendPayoutRatio;
 
     public SymbolStatisticsRepository() {
         this.symbols = extractSymbols();
         this.indexPrices = extractDatedValues("^GSPC", ResourceTypes.PRICES);
-        this.stockPrices = extractDatedValues("MSFT", ResourceTypes.PRICES);
-        this.stockDividends = extractDatedValues("MSFT", ResourceTypes.DIVIDENDS);
         this.tbReturns = extractTBillsReturns();
-        try {
-            this.returnOnEquity = extractSingleValue("ROEs/" + "MSFT");
-            this.dividendPayoutRatio = extractSingleValue("payoutRatios/" + "MSFT");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        this.stockPrices = new HashMap<>();
+        this.stockDividends = new HashMap<>();
+        this.returnOnEquity = new HashMap<>();
+        this.dividendPayoutRatio = new HashMap<>();
+
+        symbols.forEach(symbol -> {
+            this.stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES));
+            this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
+            try {
+                this.returnOnEquity.put(symbol, extractSingleValue("ROEs/" + symbol));
+                this.dividendPayoutRatio.put(symbol, extractSingleValue("payoutRatios/" + symbol));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     private Collection<String> extractSymbols() {
@@ -49,7 +56,8 @@ public class SymbolStatisticsRepository {
     public static Double extractSingleValue(final String path) throws IOException {
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(path));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
-            return Double.valueOf(reader.readLine());
+            final var line = reader.readLine();
+            return line != null ? Double.parseDouble(line) : Double.NaN;
         }
     }
 
@@ -60,7 +68,7 @@ public class SymbolStatisticsRepository {
         );
     }
 
-    public static Map<LocalDate, Double> extractTBillsReturns() {
+    public static LinkedHashMap<LocalDate, Double> extractTBillsReturns() {
         return byBufferedReader(
             "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
@@ -135,23 +143,23 @@ public class SymbolStatisticsRepository {
         return indexPrices;
     }
 
-    public LinkedHashMap<LocalDate, Double> getStockPrices() {
+    public Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices() {
         return stockPrices;
     }
 
-    public LinkedHashMap<LocalDate, Double> getStockDividends() {
+    public Map<String, LinkedHashMap<LocalDate, Double>> getStockDividends() {
         return stockDividends;
     }
 
-    public Map<LocalDate, Double> getTbReturns() {
+    public LinkedHashMap<LocalDate, Double> getTbReturns() {
         return tbReturns;
     }
 
-    public double getReturnOnEquity() {
+    public Map<String, Double> getReturnOnEquity() {
         return returnOnEquity;
     }
 
-    public double getDividendPayoutRatio() {
+    public Map<String, Double> getDividendPayoutRatio() {
         return dividendPayoutRatio;
     }
 }

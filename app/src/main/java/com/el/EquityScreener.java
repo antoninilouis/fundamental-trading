@@ -2,15 +2,20 @@ package com.el;
 
 import java.time.LocalDate;
 import java.util.Collection;
-import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.stream.Collectors;
 
 public class EquityScreener {
 
     private final SymbolStatisticsRepository symbolStatisticsRepository;
+    private final LocalDate lastDate;
 
-    public EquityScreener(SymbolStatisticsRepository symbolStatisticsRepository) {
+    public EquityScreener(
+        SymbolStatisticsRepository symbolStatisticsRepository,
+        LocalDate lastDate
+    ) {
         this.symbolStatisticsRepository = symbolStatisticsRepository;
+        this.lastDate = lastDate;
     }
 
     public Collection<String> screenEquities() {
@@ -22,13 +27,13 @@ public class EquityScreener {
         // capm
         final var indexPrices = symbolStatisticsRepository.getIndexPrices();
         final var tbReturns = symbolStatisticsRepository.getTbReturns();
-        final var stockPrices = symbolStatisticsRepository.getStockPrices();
-        final var stockDividends = symbolStatisticsRepository.getStockDividends();
-        final var k = CAPM.compute(indexPrices, stockPrices, tbReturns, LocalDate.of(2022,5, 31));
+        final var stockPrices = symbolStatisticsRepository.getStockPrices().get(symbol);
+        final var stockDividends = symbolStatisticsRepository.getStockDividends().get(symbol);
+        final var k = CAPM.compute(indexPrices, stockPrices, tbReturns, this.lastDate);
 
         // expected return
-        final var returnOnEquity = symbolStatisticsRepository.getReturnOnEquity();
-        final var dividendPayoutRatio = symbolStatisticsRepository.getDividendPayoutRatio();
+        final var returnOnEquity = symbolStatisticsRepository.getReturnOnEquity().get(symbol);
+        final var dividendPayoutRatio = symbolStatisticsRepository.getDividendPayoutRatio().get(symbol);
         final Double growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
         final var er = computeExpectedReturnsOnShare(stockPrices, stockDividends, growthRate);
 
@@ -36,31 +41,22 @@ public class EquityScreener {
         final var v0 = computeIntrinsicValueOfShare(stockPrices, stockDividends, growthRate, k);
 
         // market price
-        final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        final var m = stockPrices.get(optLatestPriceDate.get());
+        final var m = getLatestInDate(stockPrices);
 
         // todo: test g - P/E ~= 0
         return er > k && v0 > m;
     }
 
-    private static double computeIntrinsicValueOfShare(
-            Map<LocalDate, Double> stockPrices,
-            Map<LocalDate, Double> stockDividends,
-            Double growthRate,
-            Double k
+    private double computeIntrinsicValueOfShare(
+        LinkedHashMap<LocalDate, Double> stockPrices,
+        LinkedHashMap<LocalDate, Double> stockDividends,
+        Double growthRate,
+        Double k
     ) {
         // E(P0)
-        final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        final var latestPrice = stockPrices.get(optLatestPriceDate.get());
+        final double latestPrice = getLatestInDate(stockPrices);
         // E(D0)
-        final var optLatestDividendDate = stockDividends.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        final var latestDividend = stockDividends.get(optLatestDividendDate.get());
+        final double latestDividend = getLatestInDate(stockDividends);
         // E(P1)
         final var forecastedPrice = latestPrice * (1 + growthRate);
         // E(D1)
@@ -69,27 +65,32 @@ public class EquityScreener {
         return forecastedDividends + forecastedPrice / (1 + k);
     }
 
-    private static double computeExpectedReturnsOnShare(
-            Map<LocalDate, Double> stockPrices,
-            Map<LocalDate, Double> stockDividends,
-            Double growthRate
+    private double computeExpectedReturnsOnShare(
+        LinkedHashMap<LocalDate, Double> stockPrices,
+        LinkedHashMap<LocalDate, Double> stockDividends,
+        Double growthRate
     ) {
         // E(P0)
-        final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        final var latestPrice = stockPrices.get(optLatestPriceDate.get());
+        final double latestPrice = getLatestInDate(stockPrices);
         // E(D0)
-        final var optLatestDividendDate = stockDividends.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        final var latestDividend = stockDividends.get(optLatestDividendDate.get());
+        final double latestDividend = getLatestInDate(stockDividends);
         // E(P1)
         final var forecastedPrice = latestPrice * (1 + growthRate);
         // E(D1)
         final var forecastedDividends = latestDividend * (1 + growthRate);
         // E(r)
         return (forecastedDividends + forecastedPrice - latestPrice) / latestPrice;
+    }
+
+    private Double getLatestInDate(LinkedHashMap<LocalDate, Double> values) {
+        final var optLatestPriceDate = values.keySet().stream().sorted()
+            .filter(localDate -> localDate.isBefore(this.lastDate.plusDays(1)))
+            .max(LocalDate::compareTo);
+        if (optLatestPriceDate.isEmpty()) {
+            return 0.0;
+        } else {
+            return values.get(optLatestPriceDate.get());
+        }
     }
 
     private static Double computeGrowthRate(Double returnOnEquity, Double dividendPayoutRatio) {

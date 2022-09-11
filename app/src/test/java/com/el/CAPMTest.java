@@ -1,6 +1,5 @@
 package com.el;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -12,11 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class CAPMTest
 {
 
-    private static LinkedHashMap<LocalDate, Double> stockPrices;
-
-    @BeforeAll
-    public static void setUp() {
-        stockPrices = new LinkedHashMap<>();
+    @Test
+    public void testConversionToReturnPercents()
+    {
+        final var stockPrices = new LinkedHashMap<LocalDate, Double>();
         stockPrices.put(LocalDate.parse("2021-05-03"), 77.680000);
         stockPrices.put(LocalDate.parse("2021-05-04"), 76.800003);
         stockPrices.put(LocalDate.parse("2021-05-05"), 76.930000);
@@ -28,11 +26,6 @@ public class CAPMTest
         stockPrices.put(LocalDate.parse("2021-05-13"), 77.769997);
         stockPrices.put(LocalDate.parse("2021-05-17"), 77.970001);
 
-    }
-
-    @Test
-    public void testConversionToReturnPercents()
-    {
         final var stockReturns = new LinkedHashMap<>();
         stockReturns.put(LocalDate.parse("2021-05-03"), 0.0);
         stockReturns.put(LocalDate.parse("2021-05-04"), -0.011328488671472736);
@@ -45,8 +38,7 @@ public class CAPMTest
         stockReturns.put(LocalDate.parse("2021-05-13"), -0.009299401273885288);
         stockReturns.put(LocalDate.parse("2021-05-17"), 0.002571737272922814);
 
-        final var returns = CAPM.toReturnPercents(stockPrices);
-        assertEquals(returns, stockReturns);
+        assertEquals(CAPM.toReturnPercents(stockPrices), stockReturns);
     }
 
     @Test

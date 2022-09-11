@@ -14,7 +14,7 @@ public class SymbolStatisticsRepositoryTest {
     {
         final var es = new SymbolStatisticsRepository();
         final LinkedHashMap<LocalDate, Double> indexPrices = es.getIndexPrices();
-        final LinkedHashMap<LocalDate, Double> tBillsReturns = (LinkedHashMap<LocalDate, Double>) SymbolStatisticsRepository.extractTBillsReturns();
+        final LinkedHashMap<LocalDate, Double> tBillsReturns = SymbolStatisticsRepository.extractTBillsReturns();
 
         assertEquals(indexPrices.size(), 356);
         assertEquals(tBillsReturns.get(LocalDate.of(2022,5, 31)), 1.13, 1e-3);
