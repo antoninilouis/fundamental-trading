@@ -1,12 +1,11 @@
 package com.el;
 
-import org.apache.commons.math3.stat.regression.SimpleRegression;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -17,20 +16,14 @@ public class Application
 {
     public static void main( String[] args )
     {
-        double capm = computeCAPM();
+        final var marketReturns = extractReturns("^GSPC");
+        final var stockReturns = extractReturns("MSFT");
+        final var tbReturns = extractTBillsReturns();
+
+        CAPM.compute(marketReturns, stockReturns, tbReturns, LocalDate.of(2022,5, 31));
     }
 
-    static double computeCAPM() {
-        final var marketReturns = extractReturns("^GSPC");
-        final var stockReturns = extractReturns("AAPL");
-        // E(Rm)
-        var erm = calculateExpectedReturnsOnMarket(marketReturns);
-        // rf
-        var rf = extractTBillsReturnsAtDate(LocalDate.of(2022,5, 31));
-        // Bi
-        var beta = calculateStockBeta(stockReturns, marketReturns);
-        return rf + beta * (erm - rf);
-    }
+    // Input extraction
 
     static Map<LocalDate, Double> extractReturns(final String symbol) {
         final Map<LocalDate, Double> prices = byBufferedReader(
@@ -41,15 +34,11 @@ public class Application
         return prices;
     }
 
-    static double calculateExpectedReturnsOnMarket(final Map<LocalDate, Double> marketReturns) {
-        return Math.pow(marketReturns.values().stream().reduce(1.0, (a, b) -> a * (1 + b)), 1.0 / marketReturns.size()) - 1.0;
-    }
-
-    static Double extractTBillsReturnsAtDate(LocalDate date) {
+    static Map<LocalDate, Double> extractTBillsReturns() {
         return byBufferedReader(
             "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
-        ).get(date);
+        );
     }
 
     static void toReturnPercents(final Map<LocalDate, Double> prices) {
@@ -68,35 +57,7 @@ public class Application
         }
     }
 
-    static double calculateStockBeta(
-        final Map<LocalDate, Double> stockReturns,
-        final Map<LocalDate, Double> marketReturns
-    ) {
-        final var reg = new SimpleRegression();
-        for (var entry : stockReturns.entrySet()) {
-            if (!marketReturns.containsKey(entry.getKey())) {
-                continue;
-            }
-            // SimpleRegression.addData
-            reg.addData(entry.getValue(), marketReturns.get(entry.getKey()));
-        }
-        return reg.getSlope();
-    }
-
     // Utils
-
-    public static List<String> byBufferedReader(String filePath) {
-        List<String> list = new ArrayList<>();
-        String line;
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-            while ((line = reader.readLine()) != null) {
-                list.add(line);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return list;
-    }
 
     private static Map<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
         LinkedHashMap<LocalDate, Double> map = new LinkedHashMap<>();
