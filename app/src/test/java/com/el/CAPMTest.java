@@ -1,26 +1,21 @@
 package com.el;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class ApplicationTest
+public class CAPMTest
 {
 
     private static LinkedHashMap<LocalDate, Double> stockPrices;
-    private static LinkedHashMap<LocalDate, Double> stockReturns;
-    private static LinkedHashMap<LocalDate, Double> indexReturns;
-    private static LinkedHashMap<LocalDate, Double> tBillsReturns;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
-        indexReturns = (LinkedHashMap<LocalDate, Double>) CAPM.toReturnPercents(Application.extractDatedValues("^GSPC", Application.ResourceTypes.PRICES));
-
         stockPrices = new LinkedHashMap<>();
         stockPrices.put(LocalDate.parse("2021-05-03"), 77.680000);
         stockPrices.put(LocalDate.parse("2021-05-04"), 76.800003);
@@ -33,7 +28,12 @@ public class ApplicationTest
         stockPrices.put(LocalDate.parse("2021-05-13"), 77.769997);
         stockPrices.put(LocalDate.parse("2021-05-17"), 77.970001);
 
-        stockReturns = new LinkedHashMap<>();
+    }
+
+    @Test
+    public void testConversionToReturnPercents()
+    {
+        final var stockReturns = new LinkedHashMap<>();
         stockReturns.put(LocalDate.parse("2021-05-03"), 0.0);
         stockReturns.put(LocalDate.parse("2021-05-04"), -0.011328488671472736);
         stockReturns.put(LocalDate.parse("2021-05-05"), 0.0016926692047134484);
@@ -45,26 +45,13 @@ public class ApplicationTest
         stockReturns.put(LocalDate.parse("2021-05-13"), -0.009299401273885288);
         stockReturns.put(LocalDate.parse("2021-05-17"), 0.002571737272922814);
 
-        tBillsReturns = (LinkedHashMap<LocalDate, Double>) Application.extractTBillsReturns();
-    }
-
-    @Test
-    public void testLoadResources()
-    {
-        assertEquals(indexReturns.size(), 356);
-        assertEquals(tBillsReturns.get(LocalDate.of(2022,5, 31)), 1.13, 1e-3);
-        assertEquals(tBillsReturns.size(), 173);
-    }
-
-    @Test
-    public void testConversionToReturnPercents()
-    {
         final var returns = CAPM.toReturnPercents(stockPrices);
         assertEquals(returns, stockReturns);
     }
 
     @Test
     public void calculateMeanMarketReturns() {
+        final var indexReturns = (LinkedHashMap<LocalDate, Double>) CAPM.toReturnPercents(SymbolStatisticsRepository.extractDatedValues("^GSPC", SymbolStatisticsRepository.ResourceTypes.PRICES));
         final var erm = CAPM.calculateMeanMarketReturns(indexReturns);
         assertEquals(indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + b)),
                 indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + erm)), 1e-10);
@@ -74,6 +61,6 @@ public class ApplicationTest
     @Test
     public void testCalculateStockBeta() {
         // fixme: verify with real input and output
-        final var beta = CAPM.calculateStockBeta(stockReturns, indexReturns);
+        // final var beta = CAPM.calculateStockBeta(stockReturns, indexReturns);
     }
 }

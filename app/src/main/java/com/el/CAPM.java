@@ -19,7 +19,7 @@ public class CAPM {
         final var stockReturns = CAPM.toReturnPercents(stockPrices);
         // E(Rm)
         var erm = calculateMeanMarketReturns(indexReturns);
-        //rf
+        // rf
         var rf = tBillsReturns.get(date);
         // Bi
         var beta = calculateStockBeta(stockReturns, indexReturns);
