@@ -33,9 +33,38 @@ public class Application
         }
 
         final var er = computeExpectedReturnsOnShare(stockPrices, stockDividends, growthRate);
+        final var v0 = computeIntrinsicValueOfShare(stockPrices, stockDividends, growthRate, k);
     }
 
-    private static double computeExpectedReturnsOnShare(Map<LocalDate, Double> stockPrices, Map<LocalDate, Double> stockDividends, Double growthRate) {
+    private static double computeIntrinsicValueOfShare(
+        Map<LocalDate, Double> stockPrices,
+        Map<LocalDate, Double> stockDividends,
+        Double growthRate,
+        Double k
+    ) {
+        // E(P0)
+        final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
+                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
+                .max(LocalDate::compareTo);
+        final var latestPrice = stockPrices.get(optLatestPriceDate.get());
+        // E(D0)
+        final var optLatestDividendDate = stockDividends.keySet().stream().sorted()
+                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
+                .max(LocalDate::compareTo);
+        final var latestDividend = stockDividends.get(optLatestDividendDate.get());
+        // E(P1)
+        final var forecastedPrice = latestPrice * (1 + growthRate);
+        // E(D1)
+        final var forecastedDividends = latestDividend * (1 + growthRate);
+        // todo: verify V0=E(D1)+E(P1)/(1+k) VS V0=(E(D1)+E(P1))/(1+k)
+        return forecastedDividends + forecastedPrice / (1 + k);
+    }
+
+    private static double computeExpectedReturnsOnShare(
+        Map<LocalDate, Double> stockPrices,
+        Map<LocalDate, Double> stockDividends,
+        Double growthRate
+    ) {
         // E(P0)
         final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
             .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
