@@ -57,6 +57,7 @@ public class SymbolStatisticsRepository {
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(path));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
             final var line = reader.readLine();
+            // todo: verify where NaN single values will be used
             return line != null ? Double.parseDouble(line) : Double.NaN;
         }
     }
