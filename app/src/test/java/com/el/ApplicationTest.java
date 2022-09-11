@@ -15,12 +15,12 @@ public class ApplicationTest
 
     private static LinkedHashMap<LocalDate, Double> stockPrices;
     private static LinkedHashMap<LocalDate, Double> stockReturns;
-    private static LinkedHashMap<LocalDate, Double> marketReturns;
+    private static LinkedHashMap<LocalDate, Double> indexReturns;
     private static Map<LocalDate, Double> tBillsReturns;
 
     @BeforeClass
     public static void setUp() {
-        marketReturns = (LinkedHashMap<LocalDate, Double>) Application.extractReturns("^GSPC");
+        indexReturns = (LinkedHashMap<LocalDate, Double>) Application.extractDatedValues("^GSPC", Application.ResourceTypes.PRICES);
 
         stockPrices = new LinkedHashMap<>();
         stockPrices.put(LocalDate.parse("2021-05-03"), 77.680000);
@@ -52,7 +52,7 @@ public class ApplicationTest
     @Test
     public void testLoadResources()
     {
-        assertEquals(marketReturns.size(), 356);
+        assertEquals(indexReturns.size(), 356);
         assertEquals(tBillsReturns.get(LocalDate.of(2022,5, 31)), 1.13, 1e-3);
         assertEquals(tBillsReturns.size(), 173);
     }
@@ -60,21 +60,21 @@ public class ApplicationTest
     @Test
     public void testConversionToReturnPercents()
     {
-        Application.toReturnPercents(stockPrices);
-        assertEquals(stockPrices, stockReturns);
+        final var returns = CAPM.toReturnPercents(stockPrices);
+        assertEquals(returns, stockReturns);
     }
 
     @Test
     public void calculateExpectedReturnsOnMarket() {
-        final var erm = CAPM.calculateExpectedReturnsOnMarket(marketReturns);
-        assertEquals(marketReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + b)),
-                marketReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + erm)), 1e-10);
+        final var erm = CAPM.calculateExpectedReturnsOnMarket(indexReturns);
+        assertEquals(indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + b)),
+                indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + erm)), 1e-10);
     }
 
     @Disabled
     @Test
     public void testCalculateStockBeta() {
         // fixme: verify with real input and output
-        final var beta = CAPM.calculateStockBeta(stockReturns, marketReturns);
+        final var beta = CAPM.calculateStockBeta(stockReturns, indexReturns);
     }
 }

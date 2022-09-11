@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Algorithm to trade equities of an optimal risky portfolio based on the CAPM... every minute.
@@ -16,22 +18,65 @@ public class Application
 {
     public static void main( String[] args )
     {
-        final var marketReturns = extractReturns("^GSPC");
-        final var stockReturns = extractReturns("MSFT");
+        final var indexPrices = extractDatedValues("^GSPC", ResourceTypes.PRICES);
+        final var stockPrices = extractDatedValues("MSFT", ResourceTypes.PRICES);
+        final var stockDividends = extractDatedValues("MSFT", ResourceTypes.DIVIDENDS);
         final var tbReturns = extractTBillsReturns();
 
-        CAPM.compute(marketReturns, stockReturns, tbReturns, LocalDate.of(2022,5, 31));
+        CAPM.compute(indexPrices, stockPrices, tbReturns, LocalDate.of(2022,5, 31));
+
+        final Double growthRate;
+        try {
+            final var returnOnEquity = extractSingleValue("payoutRatios/MSFT");
+            final var dividendPayoutRatio = extractSingleValue("ROEs/MSFT");
+            growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        final var forecastedPrice = computeForecastedPrice(stockPrices, growthRate);
+        final var forecastedDividends = computeForecastedDividends(stockDividends, growthRate);
+    }
+
+    private static Double computeForecastedDividends(Map<LocalDate, Double> stockDividends, Double growthRate) {
+        var optLatestDate = stockDividends.keySet().stream().sorted()
+                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
+                .max(LocalDate::compareTo);
+        if (optLatestDate.isEmpty()) {
+            return 0.0;
+        }
+        return stockDividends.get(optLatestDate.get()) * (1 + growthRate);
+    }
+
+    private static Double computeForecastedPrice(Map<LocalDate, Double> stockPrices, Double growthRate) {
+        var optLatestDate = stockPrices.keySet().stream().sorted()
+                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
+                .max(LocalDate::compareTo);
+        if (optLatestDate.isEmpty()) {
+            return 0.0;
+        }
+        return stockPrices.get(optLatestDate.get()) * (1 + growthRate);
+    }
+
+    private static Double computeGrowthRate(Double returnOnEquity, Double dividendPayoutRatio) {
+        return returnOnEquity * (1.0 - dividendPayoutRatio);
     }
 
     // Input extraction
 
-    static Map<LocalDate, Double> extractReturns(final String symbol) {
-        final Map<LocalDate, Double> prices = byBufferedReader(
-            "prices/" + symbol + ".csv",
+    static Double extractSingleValue(final String path) throws IOException {
+        String line;
+        final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(path));
+        try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+            return Double.valueOf(reader.readLine());
+        }
+    }
+
+    static Map<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
+        return byBufferedReader(
+            type.getPath() + symbol + ".csv",
             DupKeyOption.OVERWRITE
         );
-        toReturnPercents(prices);
-        return prices;
     }
 
     static Map<LocalDate, Double> extractTBillsReturns() {
@@ -39,22 +84,6 @@ public class Application
             "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
         );
-    }
-
-    static void toReturnPercents(final Map<LocalDate, Double> prices) {
-        final var iterator = prices.entrySet().iterator();
-        if (!iterator.hasNext()) {
-            return;
-        }
-        var firstEntry = iterator.next();
-        var previousValue = firstEntry.getValue();
-        firstEntry.setValue(0.0);
-        while (iterator.hasNext()) {
-            var entry = iterator.next();
-            var tmp = entry.getValue();
-            entry.setValue(entry.getValue() / previousValue - 1);
-            previousValue = tmp;
-        }
     }
 
     // Utils
@@ -100,5 +129,22 @@ public class Application
 
     enum DupKeyOption {
         OVERWRITE, DISCARD
+    }
+
+    enum ResourceTypes {
+        DIVIDENDS("dividends/"),
+        PAYOUT_RATIOS("payoutRatios/"),
+        PRICES("prices/"),
+        ROES("ROEs/");
+
+        private final String prefix;
+
+        ResourceTypes(final String prefix) {
+            this.prefix = prefix;
+        }
+
+        public String getPath() {
+            return prefix;
+        }
     }
 }
