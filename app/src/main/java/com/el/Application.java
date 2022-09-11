@@ -15,43 +15,41 @@ import java.util.Map;
  */
 public class Application
 {
-    /**
-     * - Logic
-     * - Integration (to IBKR)
-     */
     public static void main( String[] args )
     {
+        double capm = computeCAPM();
     }
 
     static double computeCAPM() {
-        return 0.0;
+        final var marketReturns = extractReturns("^GSPC");
+        final var stockReturns = extractReturns("AAPL");
+        // E(Rm)
+        var erm = calculateExpectedReturnsOnMarket(marketReturns);
+        // rf
+        var rf = extractTBillsReturnsAtDate(LocalDate.of(2022,5, 31));
+        // Bi
+        var beta = calculateStockBeta(stockReturns, marketReturns);
+        return rf + beta * (erm - rf);
     }
 
-    static Map<LocalDate, Double> extractSPReturns() {
-        // Get prices
+    static Map<LocalDate, Double> extractReturns(final String symbol) {
         final Map<LocalDate, Double> prices = byBufferedReader(
-                "SP500 prices (daily)",
-                DupKeyOption.OVERWRITE
-        );
-        toReturnPercents(prices);
-        return prices;
-    }
-
-    static Map<LocalDate, Double> extractStockReturns() {
-        // Get prices
-        final Map<LocalDate, Double> prices = byBufferedReader(
-            "BRK-B prices (daily)",
+            "prices/" + symbol + ".csv",
             DupKeyOption.OVERWRITE
         );
         toReturnPercents(prices);
         return prices;
     }
 
-    static Map<LocalDate, Double> extractTBillsReturns() {
+    static double calculateExpectedReturnsOnMarket(final Map<LocalDate, Double> marketReturns) {
+        return Math.pow(marketReturns.values().stream().reduce(1.0, (a, b) -> a * (1 + b)), 1.0 / marketReturns.size()) - 1.0;
+    }
+
+    static Double extractTBillsReturnsAtDate(LocalDate date) {
         return byBufferedReader(
-            "t-bills returns (daily)",
+            "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
-        );
+        ).get(date);
     }
 
     static void toReturnPercents(final Map<LocalDate, Double> prices) {
@@ -85,10 +83,6 @@ public class Application
         return reg.getSlope();
     }
 
-    static void calculateExpectedReturnsOnMarket() {
-        // todo: geometric average on the period of evaluation
-    }
-
     // Utils
 
     public static List<String> byBufferedReader(String filePath) {
@@ -110,7 +104,7 @@ public class Application
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(filePath));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
             while ((line = reader.readLine()) != null) {
-                String[] keyValuePair = line.split("\t", 2);
+                String[] keyValuePair = line.split(",", 2);
                 if (keyValuePair.length > 1) {
                     var key = LocalDate.parse(keyValuePair[0]);
                     var value = Double.valueOf(keyValuePair[1]);

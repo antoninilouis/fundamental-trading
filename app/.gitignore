@@ -28,6 +28,3 @@ replay_pid*
 
 # Maven
 target/
-
-# Project
-rawdata/

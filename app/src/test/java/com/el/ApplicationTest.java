@@ -21,7 +21,7 @@ public class ApplicationTest
 
     @BeforeClass
     public static void setUp() {
-        marketReturns = (LinkedHashMap<LocalDate, Double>) Application.extractSPReturns();
+        marketReturns = (LinkedHashMap<LocalDate, Double>) Application.extractReturns("^GSPC");
 
         stockPrices = new LinkedHashMap<>();
         stockPrices.put(LocalDate.parse("2012-05-03"), 77.680000);
@@ -51,12 +51,9 @@ public class ApplicationTest
     @Test
     public void testLoadResources()
     {
-        assertEquals(marketReturns.size(), 2516);
-        final var tBillsReturns =  Application.extractTBillsReturns();
-        assertEquals(tBillsReturns.size(), 17075);
-//        App.extractStockReturns();
-//        App.calculateStockBeta();
-//        App.calculateExpectedReturnsOnMarket();
+        assertEquals(marketReturns.size(), 356);
+        final var tBillsReturns =  Application.extractTBillsReturnsAtDate(LocalDate.of(2022, 5, 31));
+        assertEquals(tBillsReturns, 1.13, 1e-3);
     }
 
     @Test
@@ -64,6 +61,13 @@ public class ApplicationTest
     {
         Application.toReturnPercents(stockPrices);
         assertEquals(stockPrices, stockReturns);
+    }
+
+    @Test
+    public void calculateExpectedReturnsOnMarket() {
+        final var erm = Application.calculateExpectedReturnsOnMarket(marketReturns);
+        assertEquals(marketReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + b)),
+                marketReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + erm)), 1e-10);
     }
 
     @Disabled
