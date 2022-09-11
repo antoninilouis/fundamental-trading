@@ -7,8 +7,6 @@ import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Algorithm to trade equities of an optimal risky portfolio based on the CAPM... every minute.
@@ -34,28 +32,22 @@ public class Application
             throw new RuntimeException(e);
         }
 
-        final var forecastedPrice = computeForecastedPrice(stockPrices, growthRate);
-        final var forecastedDividends = computeForecastedDividends(stockDividends, growthRate);
-    }
-
-    private static Double computeForecastedDividends(Map<LocalDate, Double> stockDividends, Double growthRate) {
-        var optLatestDate = stockDividends.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        if (optLatestDate.isEmpty()) {
-            return 0.0;
-        }
-        return stockDividends.get(optLatestDate.get()) * (1 + growthRate);
-    }
-
-    private static Double computeForecastedPrice(Map<LocalDate, Double> stockPrices, Double growthRate) {
-        var optLatestDate = stockPrices.keySet().stream().sorted()
-                .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
-                .max(LocalDate::compareTo);
-        if (optLatestDate.isEmpty()) {
-            return 0.0;
-        }
-        return stockPrices.get(optLatestDate.get()) * (1 + growthRate);
+        // E(P0)
+        final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
+            .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
+            .max(LocalDate::compareTo);
+        final var latestPrice = stockPrices.get(optLatestPriceDate.get());
+        // E(D0)
+        final var optLatestDividendDate = stockDividends.keySet().stream().sorted()
+            .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
+            .max(LocalDate::compareTo);
+        final var latestDividend = stockDividends.get(optLatestDividendDate.get());
+        // E(P1)
+        final var forecastedPrice = latestPrice * (1 + growthRate);
+        // E(D1)
+        final var forecastedDividends = latestDividend * (1 + growthRate);
+        // E(r)
+        final var expectedReturns = (forecastedDividends + forecastedPrice - latestPrice) / latestPrice;
     }
 
     private static Double computeGrowthRate(Double returnOnEquity, Double dividendPayoutRatio) {
@@ -65,7 +57,6 @@ public class Application
     // Input extraction
 
     static Double extractSingleValue(final String path) throws IOException {
-        String line;
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(path));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
             return Double.valueOf(reader.readLine());

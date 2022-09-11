@@ -16,11 +16,11 @@ public class ApplicationTest
     private static LinkedHashMap<LocalDate, Double> stockPrices;
     private static LinkedHashMap<LocalDate, Double> stockReturns;
     private static LinkedHashMap<LocalDate, Double> indexReturns;
-    private static Map<LocalDate, Double> tBillsReturns;
+    private static LinkedHashMap<LocalDate, Double> tBillsReturns;
 
     @BeforeClass
     public static void setUp() {
-        indexReturns = (LinkedHashMap<LocalDate, Double>) Application.extractDatedValues("^GSPC", Application.ResourceTypes.PRICES);
+        indexReturns = (LinkedHashMap<LocalDate, Double>) CAPM.toReturnPercents(Application.extractDatedValues("^GSPC", Application.ResourceTypes.PRICES));
 
         stockPrices = new LinkedHashMap<>();
         stockPrices.put(LocalDate.parse("2021-05-03"), 77.680000);
@@ -46,7 +46,7 @@ public class ApplicationTest
         stockReturns.put(LocalDate.parse("2021-05-13"), -0.009299401273885288);
         stockReturns.put(LocalDate.parse("2021-05-17"), 0.002571737272922814);
 
-        tBillsReturns =  Application.extractTBillsReturns();
+        tBillsReturns = (LinkedHashMap<LocalDate, Double>) Application.extractTBillsReturns();
     }
 
     @Test
