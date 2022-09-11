@@ -18,7 +18,7 @@ public class CAPM {
         final var indexReturns = CAPM.toReturnPercents(indexPrices);
         final var stockReturns = CAPM.toReturnPercents(stockPrices);
         // E(Rm)
-        var erm = calculateExpectedReturnsOnMarket(indexReturns);
+        var erm = calculateMeanMarketReturns(indexReturns);
         //rf
         var rf = tBillsReturns.get(date);
         // Bi
@@ -26,7 +26,7 @@ public class CAPM {
         return rf + beta * (erm - rf);
     }
 
-    static double calculateExpectedReturnsOnMarket(final Map<LocalDate, Double> indexReturns) {
+    static double calculateMeanMarketReturns(final Map<LocalDate, Double> indexReturns) {
         return Math.pow(indexReturns.values().stream().reduce(1.0, (a, b) -> a * (1 + b)), 1.0 / indexReturns.size()) - 1.0;
     }
 

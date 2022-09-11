@@ -21,7 +21,7 @@ public class Application
         final var stockDividends = extractDatedValues("MSFT", ResourceTypes.DIVIDENDS);
         final var tbReturns = extractTBillsReturns();
 
-        CAPM.compute(indexPrices, stockPrices, tbReturns, LocalDate.of(2022,5, 31));
+        final var k = CAPM.compute(indexPrices, stockPrices, tbReturns, LocalDate.of(2022,5, 31));
 
         final Double growthRate;
         try {
@@ -32,6 +32,10 @@ public class Application
             throw new RuntimeException(e);
         }
 
+        final var er = computeExpectedReturnsOnShare(stockPrices, stockDividends, growthRate);
+    }
+
+    private static double computeExpectedReturnsOnShare(Map<LocalDate, Double> stockPrices, Map<LocalDate, Double> stockDividends, Double growthRate) {
         // E(P0)
         final var optLatestPriceDate = stockPrices.keySet().stream().sorted()
             .filter(localDate -> localDate.isBefore(LocalDate.of(2022, 5, 31).plusDays(1)))
@@ -47,7 +51,7 @@ public class Application
         // E(D1)
         final var forecastedDividends = latestDividend * (1 + growthRate);
         // E(r)
-        final var expectedReturns = (forecastedDividends + forecastedPrice - latestPrice) / latestPrice;
+        return (forecastedDividends + forecastedPrice - latestPrice) / latestPrice;
     }
 
     private static Double computeGrowthRate(Double returnOnEquity, Double dividendPayoutRatio) {
