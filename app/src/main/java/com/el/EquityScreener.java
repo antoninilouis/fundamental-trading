@@ -7,13 +7,14 @@ import java.util.stream.Collectors;
 
 public class EquityScreener {
 
-    final private SymbolStatisticsRepository symbolStatisticsRepository;
+    private final SymbolStatisticsRepository symbolStatisticsRepository;
 
     public EquityScreener(SymbolStatisticsRepository symbolStatisticsRepository) {
         this.symbolStatisticsRepository = symbolStatisticsRepository;
     }
 
-    public Collection<String> screenEquities(Collection<String> symbols) {
+    public Collection<String> screenEquities() {
+        final var symbols = symbolStatisticsRepository.getSymbols();
         return symbols.stream().filter(this::testSymbol).collect(Collectors.toSet());
     }
 

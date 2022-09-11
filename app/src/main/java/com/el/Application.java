@@ -13,6 +13,6 @@ public class Application
     {
         final var symbolStatisticsRepository = new SymbolStatisticsRepository();
         final var es = new EquityScreener(symbolStatisticsRepository);
-        final var res = es.screenEquities(List.of("MSFT"));
+        final var res = es.screenEquities();
     }
 }

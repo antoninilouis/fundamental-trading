@@ -5,29 +5,45 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 public class SymbolStatisticsRepository {
 
-    final LinkedHashMap<LocalDate, Double> indexPrices;
-    final LinkedHashMap<LocalDate, Double> stockPrices;
-    final LinkedHashMap<LocalDate, Double> stockDividends;
-    final Map<LocalDate, Double> tbReturns;
-    final double returnOnEquity;
-    final double dividendPayoutRatio;
+    private final Collection<String> symbols;
+    private final LinkedHashMap<LocalDate, Double> indexPrices;
+    private final LinkedHashMap<LocalDate, Double> stockPrices;
+    private final LinkedHashMap<LocalDate, Double> stockDividends;
+    private final Map<LocalDate, Double> tbReturns;
+    private final double returnOnEquity;
+    private final double dividendPayoutRatio;
 
     public SymbolStatisticsRepository() {
-        indexPrices = SymbolStatisticsRepository.extractDatedValues("^GSPC", SymbolStatisticsRepository.ResourceTypes.PRICES);
-        stockPrices = extractDatedValues("MSFT", SymbolStatisticsRepository.ResourceTypes.PRICES);
-        stockDividends = extractDatedValues("MSFT", SymbolStatisticsRepository.ResourceTypes.DIVIDENDS);
-        tbReturns = extractTBillsReturns();
+        this.symbols = extractSymbols();
+        this.indexPrices = extractDatedValues("^GSPC", ResourceTypes.PRICES);
+        this.stockPrices = extractDatedValues("MSFT", ResourceTypes.PRICES);
+        this.stockDividends = extractDatedValues("MSFT", ResourceTypes.DIVIDENDS);
+        this.tbReturns = extractTBillsReturns();
         try {
-            returnOnEquity = extractSingleValue("ROEs/" + "MSFT");
-            dividendPayoutRatio = extractSingleValue("payoutRatios/" + "MSFT");
+            this.returnOnEquity = extractSingleValue("ROEs/" + "MSFT");
+            this.dividendPayoutRatio = extractSingleValue("payoutRatios/" + "MSFT");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Collection<String> extractSymbols() {
+        final List<String> symbols = new ArrayList<>();
+        final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream("symbols.txt"));
+        String line;
+
+        try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+            while ((line = reader.readLine()) != null) {
+                symbols.add(line);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return symbols;
     }
 
     public static Double extractSingleValue(final String path) throws IOException {
@@ -94,7 +110,7 @@ public class SymbolStatisticsRepository {
         OVERWRITE, DISCARD
     }
 
-    public enum ResourceTypes {
+    private enum ResourceTypes {
         DIVIDENDS("dividends/"),
         PAYOUT_RATIOS("payoutRatios/"),
         PRICES("prices/"),
@@ -109,6 +125,10 @@ public class SymbolStatisticsRepository {
         public String getPath() {
             return prefix;
         }
+    }
+
+    public Collection<String> getSymbols() {
+        return symbols;
     }
 
     public LinkedHashMap<LocalDate, Double> getIndexPrices() {

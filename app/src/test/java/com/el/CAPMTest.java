@@ -51,7 +51,8 @@ public class CAPMTest
 
     @Test
     public void calculateMeanMarketReturns() {
-        final var indexReturns = (LinkedHashMap<LocalDate, Double>) CAPM.toReturnPercents(SymbolStatisticsRepository.extractDatedValues("^GSPC", SymbolStatisticsRepository.ResourceTypes.PRICES));
+        final var es = new SymbolStatisticsRepository();
+        final var indexReturns = (LinkedHashMap<LocalDate, Double>) CAPM.toReturnPercents(es.getIndexPrices());
         final var erm = CAPM.calculateMeanMarketReturns(indexReturns);
         assertEquals(indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + b)),
                 indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + erm)), 1e-10);

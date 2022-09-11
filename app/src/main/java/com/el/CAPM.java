@@ -45,14 +45,12 @@ public class CAPM {
         return reg.getSlope();
     }
 
-    static Map<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
+    static LinkedHashMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
         final var copy = getCopy(prices);
         final var iterator = copy.entrySet().iterator();
-        if (!iterator.hasNext()) {
-            return Map.of();
-        }
-        var firstEntry = iterator.next();
+        final var firstEntry = iterator.next();
         var previousValue = firstEntry.getValue();
+
         firstEntry.setValue(0.0);
         while (iterator.hasNext()) {
             var entry = iterator.next();
