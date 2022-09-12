@@ -61,8 +61,7 @@ public class EquityScreener {
         final var forecastedPrice = latestPrice * (1 + growthRate);
         // E(D1)
         final var forecastedDividends = latestDividend * (1 + growthRate);
-        // todo: verify V0=E(D1)+E(P1)/(1+k) VS V0=(E(D1)+E(P1))/(1+k)
-        return forecastedDividends + forecastedPrice / (1 + k);
+        return (forecastedDividends + forecastedPrice) / (1 + k);
     }
 
     private double computeExpectedReturnsOnShare(
