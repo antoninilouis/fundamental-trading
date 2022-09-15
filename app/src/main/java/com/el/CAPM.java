@@ -21,7 +21,7 @@ public class CAPM {
         return rf + beta * (erm - rf);
     }
 
-    static double calculateMeanMarketReturns(final Map<LocalDate, Double> indexReturns) {
+    public static double calculateMeanMarketReturns(final Map<LocalDate, Double> indexReturns) {
         return Math.pow(indexReturns.values().stream().reduce(1.0, (a, b) -> a * (1 + b)), 1.0 / indexReturns.size()) - 1.0;
     }
 }

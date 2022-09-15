@@ -12,7 +12,9 @@ public class Application
     public static void main( String[] args )
     {
         final var symbolStatisticsRepository = new SymbolStatisticsRepository();
-        final var es = new EquityScreener(symbolStatisticsRepository, LocalDate.of(2022, 5, 31));
-        final var res = es.screenEquities();
+        final var es = new EquityScreener(symbolStatisticsRepository, LocalDate.of(2022, 5, 5));
+        final var selection = es.screenEquities();
+        final var sim = new SingleIndexModel(symbolStatisticsRepository, selection);
+        final var optimalAllocation = sim.getOptimalAllocation();
     }
 }

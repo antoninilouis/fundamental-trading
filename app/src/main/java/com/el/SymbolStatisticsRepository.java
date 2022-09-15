@@ -23,9 +23,11 @@ public class SymbolStatisticsRepository {
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockReturns;
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends;
 
+    public final static String INDEX_NAME = "^GSPC";
+
     public SymbolStatisticsRepository() {
         this.symbols = extractSymbols();
-        this.indexPrices = extractDatedValues("^GSPC", ResourceTypes.PRICES);
+        this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
         this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
         this.stockReturnOnEquity = new HashMap<>();
@@ -223,5 +225,11 @@ public class SymbolStatisticsRepository {
 
     public RegressionResults getStockRegressionResults(String symbol) {
         return stockRegressionResults.get(symbol);
+    }
+
+    public Map<String, RegressionResults> getStockRegressionResults(Set<String> symbols) {
+        return stockRegressionResults.entrySet().stream()
+                .filter(entry -> symbols.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }
