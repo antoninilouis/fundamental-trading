@@ -1,42 +1,91 @@
 package com.el;
 
+import org.apache.commons.math3.stat.regression.SimpleRegression;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class SymbolStatisticsRepository {
 
     private final Collection<String> symbols;
     private final LinkedHashMap<LocalDate, Double> indexPrices;
-    private final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices;
-    private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends;
+    private final LinkedHashMap<LocalDate, Double> indexReturns;
     private final LinkedHashMap<LocalDate, Double> tbReturns;
-    private final Map<String, Double> returnOnEquity;
-    private final Map<String, Double> dividendPayoutRatio;
+    private final Map<String, Double> stockReturnOnEquity;
+    private final Map<String, Double> stockDividendPayoutRatio;
+    private final Map<String, RegressionResults> stockRegressionResults;
+    private final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices;
+    private final Map<String, LinkedHashMap<LocalDate, Double>> stockReturns;
+    private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends;
 
     public SymbolStatisticsRepository() {
         this.symbols = extractSymbols();
         this.indexPrices = extractDatedValues("^GSPC", ResourceTypes.PRICES);
+        this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
+        this.stockReturnOnEquity = new HashMap<>();
+        this.stockDividendPayoutRatio = new HashMap<>();
+        this.stockRegressionResults = new HashMap<>();
         this.stockPrices = new HashMap<>();
+        this.stockReturns = new HashMap<>();
         this.stockDividends = new HashMap<>();
-        this.returnOnEquity = new HashMap<>();
-        this.dividendPayoutRatio = new HashMap<>();
 
         symbols.forEach(symbol -> {
             this.stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES));
+            this.stockReturns.put(symbol, toReturnPercents(stockPrices.get(symbol)));
             this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
             try {
-                this.returnOnEquity.put(symbol, extractSingleValue("ROEs/" + symbol));
-                this.dividendPayoutRatio.put(symbol, extractSingleValue("payoutRatios/" + symbol));
+                this.stockReturnOnEquity.put(symbol, extractSingleValue("ROEs/" + symbol));
+                this.stockDividendPayoutRatio.put(symbol, extractSingleValue("payoutRatios/" + symbol));
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+            final var reg = new SimpleRegression();
+            for (var entry : this.stockReturns.get(symbol).entrySet()) {
+                if (!this.indexReturns.containsKey(entry.getKey())) {
+                    continue;
+                }
+                reg.addData(entry.getValue(), this.indexReturns.get(entry.getKey()));
+            }
+            this.stockRegressionResults.put(symbol, new RegressionResults(
+                reg.getSlope(),
+                reg.getIntercept(),
+                reg.getSumSquaredErrors(),
+                reg.getMeanSquareError()
+            ));
         });
+
     }
+
+    // Compute
+
+     static LinkedHashMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
+        final var copy = getCopy(prices);
+        final var iterator = copy.entrySet().iterator();
+        final var firstEntry = iterator.next();
+        var previousValue = firstEntry.getValue();
+
+        firstEntry.setValue(0.0);
+        while (iterator.hasNext()) {
+            var entry = iterator.next();
+            var tmp = entry.getValue();
+            entry.setValue(entry.getValue() / previousValue - 1);
+            previousValue = tmp;
+        }
+        return copy;
+    }
+
+    private static LinkedHashMap<LocalDate, Double> getCopy(Map<LocalDate, Double> prices) {
+        return prices.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+    }
+
+    // Read
 
     private Collection<String> extractSymbols() {
         final List<String> symbols = new ArrayList<>();
@@ -53,7 +102,7 @@ public class SymbolStatisticsRepository {
         return symbols;
     }
 
-    public static Double extractSingleValue(final String path) throws IOException {
+    private static Double extractSingleValue(final String path) throws IOException {
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(path));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
             final var line = reader.readLine();
@@ -62,21 +111,21 @@ public class SymbolStatisticsRepository {
         }
     }
 
-    public static LinkedHashMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
+    private static LinkedHashMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
         return byBufferedReader(
             type.getPath() + symbol + ".csv",
             DupKeyOption.OVERWRITE
         );
     }
 
-    public static LinkedHashMap<LocalDate, Double> extractTBillsReturns() {
+    private static LinkedHashMap<LocalDate, Double> extractTBillsReturns() {
         return byBufferedReader(
             "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
         );
     }
 
-    public static LinkedHashMap<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
+    private static LinkedHashMap<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
         LinkedHashMap<LocalDate, Double> map = new LinkedHashMap<>();
         String line;
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(filePath));
@@ -104,7 +153,7 @@ public class SymbolStatisticsRepository {
         return map;
     }
 
-    public static InputStream getFileFromResourceAsStream(String fileName) {
+    private static InputStream getFileFromResourceAsStream(String fileName) {
         ClassLoader classLoader = Application.class.getClassLoader();
         InputStream inputStream = classLoader.getResourceAsStream(fileName);
 
@@ -115,7 +164,7 @@ public class SymbolStatisticsRepository {
         }
     }
 
-    public enum DupKeyOption {
+    private enum DupKeyOption {
         OVERWRITE, DISCARD
     }
 
@@ -144,23 +193,35 @@ public class SymbolStatisticsRepository {
         return indexPrices;
     }
 
-    public Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices() {
-        return stockPrices;
+    public LinkedHashMap<LocalDate, Double> getStockPrices(String symbol) {
+        return stockPrices.get(symbol);
     }
 
-    public Map<String, LinkedHashMap<LocalDate, Double>> getStockDividends() {
-        return stockDividends;
+    public LinkedHashMap<LocalDate, Double> getStockDividends(String symbol) {
+        return stockDividends.get(symbol);
     }
 
     public LinkedHashMap<LocalDate, Double> getTbReturns() {
         return tbReturns;
     }
 
-    public Map<String, Double> getReturnOnEquity() {
-        return returnOnEquity;
+    public Double getStockReturnOnEquity(String symbol) {
+        return stockReturnOnEquity.get(symbol);
     }
 
-    public Map<String, Double> getDividendPayoutRatio() {
-        return dividendPayoutRatio;
+    public Double getStockDividendPayoutRatio(String symbol) {
+        return stockDividendPayoutRatio.get(symbol);
+    }
+
+    public LinkedHashMap<LocalDate, Double> getIndexReturns() {
+        return indexReturns;
+    }
+
+    public Map<String, LinkedHashMap<LocalDate, Double>> getStockReturns() {
+        return stockReturns;
+    }
+
+    public Map<String, com.el.RegressionResults> getStockRegressionResults() {
+        return stockRegressionResults;
     }
 }

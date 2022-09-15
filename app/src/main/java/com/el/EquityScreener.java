@@ -25,15 +25,13 @@ public class EquityScreener {
 
     private boolean testSymbol(String symbol) {
         // capm
-        final var indexPrices = symbolStatisticsRepository.getIndexPrices();
-        final var tbReturns = symbolStatisticsRepository.getTbReturns();
-        final var stockPrices = symbolStatisticsRepository.getStockPrices().get(symbol);
-        final var stockDividends = symbolStatisticsRepository.getStockDividends().get(symbol);
-        final var k = CAPM.compute(indexPrices, stockPrices, tbReturns, this.lastDate);
+        final var stockPrices = symbolStatisticsRepository.getStockPrices(symbol);
+        final var stockDividends = symbolStatisticsRepository.getStockDividends(symbol);
+        final var k = CAPM.compute(symbolStatisticsRepository, symbol, this.lastDate);
 
         // expected return
-        final var returnOnEquity = symbolStatisticsRepository.getReturnOnEquity().get(symbol);
-        final var dividendPayoutRatio = symbolStatisticsRepository.getDividendPayoutRatio().get(symbol);
+        final var returnOnEquity = symbolStatisticsRepository.getStockReturnOnEquity(symbol);
+        final var dividendPayoutRatio = symbolStatisticsRepository.getStockDividendPayoutRatio(symbol);
         final Double growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
         final var er = computeExpectedReturnsOnShare(stockPrices, stockDividends, growthRate);
 
