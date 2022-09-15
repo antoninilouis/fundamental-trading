@@ -16,9 +16,9 @@ public class SymbolStatisticsRepositoryTest {
         final LinkedHashMap<LocalDate, Double> indexPrices = es.getIndexPrices();
         final LinkedHashMap<LocalDate, Double> tBillsReturns = es.getTbReturns();
 
-        assertEquals(indexPrices.size(), 2685);
-        assertEquals(tBillsReturns.get(LocalDate.of(2022,5, 31)), 1.13, 1e-3);
-        assertEquals(tBillsReturns.size(), 173);
+        assertEquals(2685, indexPrices.size());
+        assertEquals(1.13, tBillsReturns.get(LocalDate.of(2022,5, 31)), 1e-3);
+        assertEquals(925, tBillsReturns.size());
     }
 
     @Test

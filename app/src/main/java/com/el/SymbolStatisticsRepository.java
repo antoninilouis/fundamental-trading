@@ -223,6 +223,12 @@ public class SymbolStatisticsRepository {
         return stockReturns.get(symbol);
     }
 
+    public Map<String, LinkedHashMap<LocalDate, Double>> getStockReturns(Set<String> symbols) {
+        return stockReturns.entrySet().stream()
+                .filter(entry -> symbols.contains(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     public RegressionResults getStockRegressionResults(String symbol) {
         return stockRegressionResults.get(symbol);
     }
