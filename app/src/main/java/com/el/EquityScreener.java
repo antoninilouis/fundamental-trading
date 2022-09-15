@@ -1,8 +1,8 @@
 package com.el;
 
 import java.time.LocalDate;
-import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EquityScreener {
@@ -18,7 +18,7 @@ public class EquityScreener {
         this.lastDate = lastDate;
     }
 
-    public Collection<String> screenEquities() {
+    public Set<String> screenEquities() {
         final var symbols = symbolStatisticsRepository.getSymbols();
         return symbols.stream().filter(this::testSymbol).collect(Collectors.toSet());
     }

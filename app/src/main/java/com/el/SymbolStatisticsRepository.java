@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
 
 public class SymbolStatisticsRepository {
 
-    private final Collection<String> symbols;
+    private final List<String> symbols;
     private final LinkedHashMap<LocalDate, Double> indexPrices;
     private final LinkedHashMap<LocalDate, Double> indexReturns;
     private final LinkedHashMap<LocalDate, Double> tbReturns;
@@ -87,7 +87,7 @@ public class SymbolStatisticsRepository {
 
     // Read
 
-    private Collection<String> extractSymbols() {
+    private List<String> extractSymbols() {
         final List<String> symbols = new ArrayList<>();
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream("symbols.txt"));
         String line;
@@ -185,7 +185,7 @@ public class SymbolStatisticsRepository {
         }
     }
 
-    public Collection<String> getSymbols() {
+    public List<String> getSymbols() {
         return symbols;
     }
 
@@ -217,11 +217,11 @@ public class SymbolStatisticsRepository {
         return indexReturns;
     }
 
-    public Map<String, LinkedHashMap<LocalDate, Double>> getStockReturns() {
-        return stockReturns;
+    public LinkedHashMap<LocalDate, Double> getStockReturns(String symbol) {
+        return stockReturns.get(symbol);
     }
 
-    public Map<String, com.el.RegressionResults> getStockRegressionResults() {
-        return stockRegressionResults;
+    public RegressionResults getStockRegressionResults(String symbol) {
+        return stockRegressionResults.get(symbol);
     }
 }

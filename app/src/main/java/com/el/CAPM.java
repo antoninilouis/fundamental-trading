@@ -17,7 +17,7 @@ public class CAPM {
         // rf
         var rf = tBillsReturns.get(date);
         // Bi
-        var beta = symbolStatisticsRepository.getStockRegressionResults().get(symbol).getSlope();
+        var beta = symbolStatisticsRepository.getStockRegressionResults(symbol).getSlope();
         return rf + beta * (erm - rf);
     }
 
