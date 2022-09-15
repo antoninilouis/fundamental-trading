@@ -82,13 +82,14 @@ public class EquityScreener {
     }
 
     private Double getLatestInDate(LinkedHashMap<LocalDate, Double> values) {
-        final var optLatestPriceDate = values.keySet().stream().sorted()
-            .filter(localDate -> localDate.isBefore(this.lastDate.plusDays(1)))
-            .max(LocalDate::compareTo);
-        if (optLatestPriceDate.isEmpty()) {
+        final var optLatestValue = values.keySet().stream()
+                .filter(localDate -> localDate.isBefore(this.lastDate.plusDays(1)))
+                .max(LocalDate::compareTo);
+        // todo: return optional instead
+        if (optLatestValue.isEmpty()) {
             return 0.0;
         } else {
-            return values.get(optLatestPriceDate.get());
+            return values.get(optLatestValue.get());
         }
     }
 

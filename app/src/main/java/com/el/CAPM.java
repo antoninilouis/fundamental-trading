@@ -42,6 +42,9 @@ public class CAPM {
             // SimpleRegression.addData
             reg.addData(entry.getValue(), indexReturns.get(entry.getKey()));
         }
+
+        // todo: regression provides more statistics that should be shared outside this class
+
         return reg.getSlope();
     }
 
