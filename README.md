@@ -21,5 +21,13 @@ For Nasdaq-100 with ^GSPC (S&P 500) as index
    1. Variance of stock residuals (s^2(ei)) = SSE / N - 1 = MSE
 2. Compute the optimal portfolio weights using the analytical method
 
+## Integration to Interactive Broker
+1. Goal
+2. API to use
+3. Extending SymbolStatisticsRepository
+4. Client library to use (check IBKR's own client)
+5. Configuration, environments, administration, monitoring etc.
+
 ## To be determined
-1. Optimal frequency and period for computations
+1. Preferred frequency and period of modelling
+2. Preferred frequency of trading

@@ -2,20 +2,18 @@ package com.el;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EquityScreener {
 
     private final SymbolStatisticsRepository symbolStatisticsRepository;
-    private final LocalDate lastDate;
 
     public EquityScreener(
-        SymbolStatisticsRepository symbolStatisticsRepository,
-        LocalDate lastDate
+        SymbolStatisticsRepository symbolStatisticsRepository
     ) {
         this.symbolStatisticsRepository = symbolStatisticsRepository;
-        this.lastDate = lastDate;
     }
 
     public Set<String> screenEquities() {
@@ -25,9 +23,9 @@ public class EquityScreener {
 
     private boolean testSymbol(String symbol) {
         // capm
-        final var stockPrices = symbolStatisticsRepository.getStockPrices(symbol);
-        final var stockDividends = symbolStatisticsRepository.getStockDividends(symbol);
-        final var k = CAPM.compute(symbolStatisticsRepository, symbol, this.lastDate);
+        final var stockPrices = symbolStatisticsRepository.getPastStockPrices(symbol);
+        final var stockDividends = symbolStatisticsRepository.getPastStockDividends(symbol);
+        final var k = CAPM.compute(symbolStatisticsRepository, symbol);
 
         // expected return
         final var returnOnEquity = symbolStatisticsRepository.getStockReturnOnEquity(symbol);
@@ -39,7 +37,8 @@ public class EquityScreener {
         final var v0 = computeIntrinsicValueOfShare(stockPrices, stockDividends, growthRate, k);
 
         // market price
-        final var m = getLatestInDate(stockPrices);
+        final var m = stockPrices.entrySet().stream()
+            .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
 
         // todo: test g - P/E ~= 0
         return er > k && v0 > m;
@@ -52,9 +51,11 @@ public class EquityScreener {
         Double k
     ) {
         // E(P0)
-        final double latestPrice = getLatestInDate(stockPrices);
+        final double latestPrice = stockPrices.entrySet().stream()
+            .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
         // E(D0)
-        final double latestDividend = getLatestInDate(stockDividends);
+        final double latestDividend = stockDividends.entrySet().stream()
+            .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
         // E(P1)
         final var forecastedPrice = latestPrice * (1 + growthRate);
         // E(D1)
@@ -68,27 +69,17 @@ public class EquityScreener {
         Double growthRate
     ) {
         // E(P0)
-        final double latestPrice = getLatestInDate(stockPrices);
+        final double latestPrice = stockPrices.entrySet().stream()
+            .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
         // E(D0)
-        final double latestDividend = getLatestInDate(stockDividends);
+        final double latestDividend = stockDividends.entrySet().stream()
+            .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
         // E(P1)
         final var forecastedPrice = latestPrice * (1 + growthRate);
         // E(D1)
         final var forecastedDividends = latestDividend * (1 + growthRate);
         // E(r)
         return (forecastedDividends + forecastedPrice - latestPrice) / latestPrice;
-    }
-
-    private Double getLatestInDate(LinkedHashMap<LocalDate, Double> values) {
-        final var optLatestValue = values.keySet().stream()
-                .filter(localDate -> localDate.isBefore(this.lastDate.plusDays(1)))
-                .max(LocalDate::compareTo);
-        // todo: return optional instead
-        if (optLatestValue.isEmpty()) {
-            return 0.0;
-        } else {
-            return values.get(optLatestValue.get());
-        }
     }
 
     private static Double computeGrowthRate(Double returnOnEquity, Double dividendPayoutRatio) {

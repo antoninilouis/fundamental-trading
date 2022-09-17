@@ -12,13 +12,14 @@ public class SymbolStatisticsRepositoryTest {
     @Test
     public void testLoadResources()
     {
-        final var es = new SymbolStatisticsRepository();
+        final var tradeDate = LocalDate.of(2022,5, 27);
+        final var es = new SymbolStatisticsRepository(tradeDate);
         final LinkedHashMap<LocalDate, Double> indexPrices = es.getIndexPrices();
-        final LinkedHashMap<LocalDate, Double> tBillsReturns = es.getTbReturns();
+        final LinkedHashMap<LocalDate, Double> tBillsReturns = es.getPastTbReturns();
 
         assertEquals(2685, indexPrices.size());
-        assertEquals(1.13, tBillsReturns.get(LocalDate.of(2022,5, 31)), 1e-3);
-        assertEquals(925, tBillsReturns.size());
+        assertEquals(1.06, tBillsReturns.get(LocalDate.of(2022,5, 26)), 1e-3);
+        assertEquals(853, tBillsReturns.size());
     }
 
     @Test

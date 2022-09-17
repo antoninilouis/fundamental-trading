@@ -10,7 +10,10 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// todo: save references to new and past values, and the date of computation (to increment trade_date correctly)
 public class SymbolStatisticsRepository {
+
+    private LocalDate tradeDate;
 
     private final List<String> symbols;
     private final LinkedHashMap<LocalDate, Double> indexPrices;
@@ -18,25 +21,25 @@ public class SymbolStatisticsRepository {
     private final LinkedHashMap<LocalDate, Double> tbReturns;
     private final Map<String, Double> stockReturnOnEquity;
     private final Map<String, Double> stockDividendPayoutRatio;
-    private final Map<String, RegressionResults> stockRegressionResults;
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices;
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockReturns;
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends;
 
     public final static String INDEX_NAME = "^GSPC";
 
-    public SymbolStatisticsRepository() {
+    public SymbolStatisticsRepository(final LocalDate tradeDate) {
+        this.tradeDate = tradeDate;
         this.symbols = extractSymbols();
         this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
         this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
         this.stockReturnOnEquity = new HashMap<>();
         this.stockDividendPayoutRatio = new HashMap<>();
-        this.stockRegressionResults = new HashMap<>();
         this.stockPrices = new HashMap<>();
         this.stockReturns = new HashMap<>();
         this.stockDividends = new HashMap<>();
 
+        final var toRemove = new ArrayList<String>();
         symbols.forEach(symbol -> {
             this.stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES));
             this.stockReturns.put(symbol, toReturnPercents(stockPrices.get(symbol)));
@@ -47,21 +50,14 @@ public class SymbolStatisticsRepository {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            final var reg = new SimpleRegression();
-            for (var entry : this.stockReturns.get(symbol).entrySet()) {
-                if (!this.indexReturns.containsKey(entry.getKey())) {
-                    continue;
-                }
-                reg.addData(entry.getValue(), this.indexReturns.get(entry.getKey()));
+            if (getPastTbReturns().size() < 1) {
+                throw new RuntimeException("No T-bill returns");
             }
-            this.stockRegressionResults.put(symbol, new RegressionResults(
-                reg.getSlope(),
-                reg.getIntercept(),
-                reg.getSumSquaredErrors(),
-                reg.getMeanSquareError()
-            ));
+            if (getPastStockPrices(symbol).size() < 1200) {
+                toRemove.add(symbol);
+            }
         });
-
+        symbols.removeAll(toRemove);
     }
 
     // Compute
@@ -195,16 +191,26 @@ public class SymbolStatisticsRepository {
         return indexPrices;
     }
 
-    public LinkedHashMap<LocalDate, Double> getStockPrices(String symbol) {
-        return stockPrices.get(symbol);
+    public LinkedHashMap<LocalDate, Double> getPastStockPrices(String symbol) {
+        return stockPrices.get(symbol).entrySet().stream()
+            .filter(e -> e.getKey().isBefore(tradeDate))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
     }
 
-    public LinkedHashMap<LocalDate, Double> getStockDividends(String symbol) {
-        return stockDividends.get(symbol);
+    public LinkedHashMap<LocalDate, Double> getPastStockDividends(String symbol) {
+        final var stockDividends = this.stockDividends.get(symbol).entrySet().stream()
+            .filter(e -> e.getKey().isBefore(tradeDate))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+        if (stockDividends.isEmpty()) {
+            stockDividends.put(tradeDate.minusDays(1), 0.0);
+        }
+        return stockDividends;
     }
 
-    public LinkedHashMap<LocalDate, Double> getTbReturns() {
-        return tbReturns;
+    public LinkedHashMap<LocalDate, Double> getPastTbReturns() {
+        return tbReturns.entrySet().stream()
+            .filter(e -> e.getKey().isBefore(tradeDate))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
     }
 
     public Double getStockReturnOnEquity(String symbol) {
@@ -215,27 +221,61 @@ public class SymbolStatisticsRepository {
         return stockDividendPayoutRatio.get(symbol);
     }
 
-    public LinkedHashMap<LocalDate, Double> getIndexReturns() {
-        return indexReturns;
+    public LinkedHashMap<LocalDate, Double> getPastIndexReturns() {
+        return indexReturns.entrySet().stream()
+            .filter(e -> e.getKey().isBefore(tradeDate))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
     }
 
-    public LinkedHashMap<LocalDate, Double> getStockReturns(String symbol) {
-        return stockReturns.get(symbol);
+    public LinkedHashMap<LocalDate, Double> getNewIndexReturns() {
+        return indexReturns.entrySet().stream()
+            .filter(e -> e.getKey().isAfter(tradeDate.minusDays(1)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
     }
 
-    public Map<String, LinkedHashMap<LocalDate, Double>> getStockReturns(Set<String> symbols) {
+    public LinkedHashMap<LocalDate, Double> getPastStockReturns(String symbol) {
+        return stockReturns.get(symbol).entrySet().stream()
+            .filter(e -> e.getKey().isBefore(tradeDate))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+    }
+
+    public LinkedHashMap<LocalDate, Double> getNewStockReturns(String symbol) {
+        return stockReturns.get(symbol).entrySet().stream()
+            .filter(e -> e.getKey().isAfter(tradeDate.minusDays(1)))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+    }
+
+    public Map<String, LinkedHashMap<LocalDate, Double>> getNewStockReturns(Set<String> symbols) {
         return stockReturns.entrySet().stream()
-                .filter(entry -> symbols.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            .filter(entry -> symbols.contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
     }
 
-    public RegressionResults getStockRegressionResults(String symbol) {
+    public RegressionResults getPastStockRegressionResults(String symbol) {
+        final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
+        final var reg = new SimpleRegression();
+        final var indexReturns = getPastIndexReturns();
+        final var stockReturns = getPastStockReturns(symbol);
+        for (var entry : stockReturns.entrySet()) {
+            if (!indexReturns.containsKey(entry.getKey())) {
+                throw new RuntimeException("Missing or extraneous datapoints");
+            }
+            reg.addData(entry.getValue(), indexReturns.get(entry.getKey()));
+        }
+        stockRegressionResults.put(symbol, new RegressionResults(
+            reg.getSlope(),
+            reg.getIntercept(),
+            reg.getSumSquaredErrors(),
+            reg.getMeanSquareError()
+        ));
         return stockRegressionResults.get(symbol);
     }
 
-    public Map<String, RegressionResults> getStockRegressionResults(Set<String> symbols) {
-        return stockRegressionResults.entrySet().stream()
-                .filter(entry -> symbols.contains(entry.getKey()))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    public Map<String, RegressionResults> getPastStockRegressionResults(Set<String> symbols) {
+        return symbols.stream().collect(Collectors.toMap(symbol -> symbol, this::getPastStockRegressionResults));
+    }
+
+    public void increment() {
+        this.tradeDate = tradeDate.plusDays(1);
     }
 }
