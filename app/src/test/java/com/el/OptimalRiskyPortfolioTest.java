@@ -4,10 +4,11 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -15,7 +16,6 @@ import static java.lang.Math.pow;
 
 class OptimalRiskyPortfolioTest {
 
-    // Min: 2019-1-3 max 2022-09-01
     public static final LocalDate TRADE_DATE = LocalDate.of(2019, 1, 3);
     public static final Double STARTING_CAPITAL = 10_000.0;
 
@@ -24,64 +24,22 @@ class OptimalRiskyPortfolioTest {
     public void tryOptimalAllocation()
     {
         final var symbolStatisticsRepository = new SymbolStatisticsRepository(TRADE_DATE);
-//        Map<String, Double> allocation;
-//        final var es = new EquityScreener(symbolStatisticsRepository);
-//        final var selection = es.screenEquities();
-//        final var orp = new OptimalRiskyPortfolio(symbolStatisticsRepository, selection, finalExpectedReturn);
-//        allocation = orp.calculate();
-//        computePortfolioValue(allocation, symbolStatisticsRepository);
-        computeDynamicPortfolioValue(symbolStatisticsRepository);
+        computePortfolioValue(symbolStatisticsRepository);
+    }
+
+    @Test
+    @Disabled
+    public void tryAlpacaDataAPI()
+    {
+        final var symbolStatisticsRepository = new SymbolStatisticsRepository(
+            TRADE_DATE,
+            ZonedDateTime.of(LocalDate.of(2012, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
+            ZonedDateTime.of(LocalDate.of(2021, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
+        );
+        computePortfolioValue(symbolStatisticsRepository);
     }
 
     private double computePortfolioValue(
-        Map<String, Double> allocation,
-        SymbolStatisticsRepository symbolStatisticsRepository
-    ) {
-        var portfolioValue = STARTING_CAPITAL;
-        final var indexReturns = symbolStatisticsRepository.getNewIndexReturns();
-        final var stockReturns = symbolStatisticsRepository.getNewStockReturns(allocation.keySet());
-        var valuation = getCopy(allocation);
-        for (LocalDate i = TRADE_DATE.plusDays(1); i.isBefore(TRADE_DATE.plusDays(1339)); i = i.plusDays(1)) {
-
-            final LocalDate day = i;
-            final var missing = stockReturns.values().stream()
-                .filter(returns -> !returns.containsKey(day)).count() + (indexReturns.containsKey(day) ? 0 : 1);
-            if (missing > 0 && missing != stockReturns.size() + 1) {
-                throw new RuntimeException("Missing or extraneous datapoints");
-            }
-            if (missing > 0) {
-                continue;
-            }
-            valuation = valuation.entrySet().stream()
-                .collect(Collectors.toMap(
-                    Map.Entry::getKey,
-                    entry -> {
-                        if (entry.getKey().equals(SymbolStatisticsRepository.INDEX_NAME)) {
-                            return entry.getValue() * (1.0 + indexReturns.get(day));
-                        } else {
-                            return entry.getValue() * (1.0 + stockReturns.get(entry.getKey()).get(day));
-                        }
-                    }
-                ));
-            final var oldPortfolioValue = portfolioValue;
-            portfolioValue = valuation.values().stream().mapToDouble(d -> d * STARTING_CAPITAL).sum();
-            System.out.println(allocation.entrySet());
-            System.out.printf(
-                "Starting capital: %s, Day: %s(%s), Benefit: %.2f$(%.2f$), Rate (y): %.3f%n%n",
-                STARTING_CAPITAL,
-                ChronoUnit.DAYS.between(TRADE_DATE, day),
-                day,
-                portfolioValue - STARTING_CAPITAL,
-                portfolioValue - oldPortfolioValue,
-                100 * ((portfolioValue / oldPortfolioValue) - 1.0)
-            );
-
-            symbolStatisticsRepository.increment();
-        }
-        return portfolioValue;
-    }
-
-    private double computeDynamicPortfolioValue(
         SymbolStatisticsRepository symbolStatisticsRepository
     ) {
         final var indexReturns = symbolStatisticsRepository.getNewIndexReturns();

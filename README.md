@@ -22,7 +22,6 @@ For Nasdaq-100 with ^GSPC (S&P 500) as index
 2. Compute the optimal portfolio weights using the analytical method
 
 ## Trading
-
 ### Phases
 The transition into trading will be done in 3 phases:
 1. Backtesting
