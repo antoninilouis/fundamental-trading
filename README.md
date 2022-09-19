@@ -21,13 +21,34 @@ For Nasdaq-100 with ^GSPC (S&P 500) as index
    1. Variance of stock residuals (s^2(ei)) = SSE / N - 1 = MSE
 2. Compute the optimal portfolio weights using the analytical method
 
-## Integration to Interactive Broker
-1. Goal
-2. API to use
-3. Extending SymbolStatisticsRepository
-4. Client library to use (check IBKR's own client)
-5. Configuration, environments, administration, monitoring etc.
+## Trading
 
-## To be determined
+### Phases
+The transition into trading will be done in 3 phases:
+1. Backtesting
+2. Paper trading
+3. Live trading
+
+Backtesting
+- Recovery of stock pricing data from API to back SymbolStatisticsRepository
+  - Use community Java SDK: https://github.com/Petersoj/alpaca-java
+  - Load historical data for period/frequency
+- Add support for ZonedDateTime to SymbolStatisticsRepository
+- Backtest on different periods/frequencies of modelling/trading
+- Expand symbols list
+    - IEX eligible symbols: https://iextrading.com/trading/eligible-symbols/
+- Recovery of stock fundamental data (for paper trading) from script
+    - ... or Paid API (50$/m): https://eodhistoricaldata.com
+
+Paper trading
+- Create real time SymbolStatisticsRepository
+- Create trading logic (safe portfolio lifecycle)
+  - portfolio value tracking, safe orders, max portfolio creation delay, auto/manual mode
+- Add admin and monitoring
+  - panic button, approve button, logging
+
+Live trading
+
+### To be determined
 1. Preferred frequency and period of modelling
 2. Preferred frequency of trading
