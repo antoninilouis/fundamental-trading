@@ -29,14 +29,14 @@ The transition into trading will be done in 3 phases:
 3. Live trading
 
 Backtesting
-- Recovery of stock pricing data from API to back SymbolStatisticsRepository
+- [x] Recovery of stock pricing data from API to back SymbolStatisticsRepository
   - Use community Java SDK: https://github.com/Petersoj/alpaca-java
   - Load historical data for period/frequency
-- Add support for ZonedDateTime to SymbolStatisticsRepository
-- Backtest on different periods/frequencies of modelling/trading
-- Expand symbols list
+- [ ] Add support for ZonedDateTime to SymbolStatisticsRepository
+- [ ] Backtest on different periods/frequencies of modelling/trading
+- [ ] Expand symbols list
     - IEX eligible symbols: https://iextrading.com/trading/eligible-symbols/
-- Recovery of stock fundamental data (for paper trading) from script
+- [ ] Recovery of stock fundamental data (for paper trading) from script
     - ... or Paid API (50$/m): https://eodhistoricaldata.com
 
 Paper trading
@@ -47,6 +47,16 @@ Paper trading
   - panic button, approve button, logging
 
 Live trading
+
+### Data
+Data is organized by exchanges: narrow down to IEX listed companies
+
+Getting hourly/daily data:
+https://alpaca.markets/docs/api-references/market-data-api/stock-pricing-data/historical/
+
+Todo:
+- CAPM(beta, erm) updated by the day
+- Expected return updated at frequency
 
 ### To be determined
 1. Preferred frequency and period of modelling

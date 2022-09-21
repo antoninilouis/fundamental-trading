@@ -16,7 +16,7 @@ import static java.lang.Math.pow;
 
 class OptimalRiskyPortfolioTest {
 
-    public static final LocalDate TRADE_DATE = LocalDate.of(2019, 1, 3);
+    public static final LocalDate TRADE_DATE = LocalDate.of(2021, 1, 1);
     public static final Double STARTING_CAPITAL = 10_000.0;
 
     @Test
@@ -33,8 +33,8 @@ class OptimalRiskyPortfolioTest {
     {
         final var symbolStatisticsRepository = new SymbolStatisticsRepository(
             TRADE_DATE,
-            ZonedDateTime.of(LocalDate.of(2012, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
-            ZonedDateTime.of(LocalDate.of(2021, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
+            ZonedDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
+            ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
         );
         computePortfolioValue(symbolStatisticsRepository);
     }
@@ -68,6 +68,7 @@ class OptimalRiskyPortfolioTest {
             }
             final Map<String, LinkedHashMap<LocalDate, Double>> returnCopy = stockReturns;
 
+            // todo: verify short sales here
             valuation = getCopy(allocation);
             valuation = valuation.entrySet().stream()
                 .collect(Collectors.toMap(
@@ -95,6 +96,7 @@ class OptimalRiskyPortfolioTest {
 
             symbolStatisticsRepository.increment();
         }
+        // todo: take real duration instead of hardcoded value
         var perf = computePerformance(portfolioValue, 720.0 / 365.0);
         return portfolioValue;
     }
