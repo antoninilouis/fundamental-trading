@@ -94,6 +94,7 @@ class OptimalRiskyPortfolioTest {
             );
 
             symbolStatisticsRepository.increment();
+            es.reinitialize();
         }
         // todo: take real duration instead of hardcoded value
         var perf = computePerformance(portfolioValue, 720.0 / 365.0);

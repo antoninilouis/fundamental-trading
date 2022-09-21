@@ -55,7 +55,7 @@ Getting hourly/daily data:
 https://alpaca.markets/docs/api-references/market-data-api/stock-pricing-data/historical/
 
 Todo:
-- CAPM(beta, erm) updated by the day
+- ~~CAPM(beta, erm) updated by the day~~
 - Expected return updated at frequency
 
 ### To be determined

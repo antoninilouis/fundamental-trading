@@ -23,6 +23,10 @@ public class EquityScreener {
         return symbols.stream().filter(this::testSymbol).collect(Collectors.toSet());
     }
 
+    public void reinitialize() {
+        capmStore.clear();
+    }
+
     private boolean testSymbol(String symbol) {
         final var stockPrices = symbolStatisticsRepository.getPastStockPrices(symbol);
         final var stockDividends = symbolStatisticsRepository.getPastStockDividends(symbol);
