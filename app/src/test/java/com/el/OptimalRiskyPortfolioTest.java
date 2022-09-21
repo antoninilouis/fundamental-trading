@@ -2,13 +2,14 @@ package com.el;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -16,8 +17,9 @@ import static java.lang.Math.pow;
 
 class OptimalRiskyPortfolioTest {
 
-    public static final LocalDate TRADE_DATE = LocalDate.of(2019, 1, 3);
-    public static final Double STARTING_CAPITAL = 10_000.0;
+    private static final Logger logger = LoggerFactory.getLogger(OptimalRiskyPortfolioTest.class);
+    private static final LocalDate TRADE_DATE = LocalDate.of(2019, 1, 3);
+    private static final Double STARTING_CAPITAL = 10_000.0;
 
     @Test
     @Disabled
@@ -34,7 +36,7 @@ class OptimalRiskyPortfolioTest {
         final var symbolStatisticsRepository = new SymbolStatisticsRepository(
             TRADE_DATE,
             ZonedDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
-            ZonedDateTime.of(LocalDate.of(2021, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
+            ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
         );
         computePortfolioValue(symbolStatisticsRepository);
     }
@@ -43,61 +45,59 @@ class OptimalRiskyPortfolioTest {
         SymbolStatisticsRepository symbolStatisticsRepository
     ) {
         final var es = new EquityScreener(symbolStatisticsRepository);
-        final var indexReturns = symbolStatisticsRepository.getNewIndexReturns();
         Double portfolioValue = STARTING_CAPITAL;
-        Map<String, java.util.LinkedHashMap<LocalDate, Double>> stockReturns;
-        Map<String, Double> allocation;
-        Map<String, Double> valuation;
+        int tradedDays = 0;
+        long totalDays = 0;
 
         for (LocalDate i = TRADE_DATE; i.isBefore(TRADE_DATE.plusDays(720)); i = i.plusDays(1)) {
             final LocalDate day = i;
             final var selection = es.screenEquities();
-            final var orp = new OptimalRiskyPortfolio(symbolStatisticsRepository, selection);
-            allocation = orp.calculate();
-            stockReturns = symbolStatisticsRepository.getNewStockReturns(allocation.keySet());
+            final var stockReturns = symbolStatisticsRepository.getNewStockReturns(selection);
+            final var indexReturns = symbolStatisticsRepository.getNewIndexReturns();
 
-            final var missing = stockReturns.values().stream()
-                .filter(returns -> !returns.containsKey(day)).count() + (indexReturns.containsKey(day) ? 0 : 1);
-
-            if (missing > 0 && missing != stockReturns.size() + 1) {
-                throw new RuntimeException("Missing or extraneous datapoints");
-            }
-            if (missing > 0) {
+            final var missing = stockReturns.values().stream().filter(returns -> !returns.containsKey(day)).count();
+            try {
+                if (missing > 0 || !indexReturns.containsKey(day)) {
+                    throw new RuntimeException("Missing or extraneous data points");
+                }
+            } catch (RuntimeException e) {
+                logger.warn(e.getMessage() + ", stocks: {} index: {}", missing, indexReturns.containsKey(day));
                 continue;
             }
-            final Map<String, LinkedHashMap<LocalDate, Double>> returnCopy = stockReturns;
 
-            // todo: verify short sales here
-            valuation = getCopy(allocation);
-            valuation = valuation.entrySet().stream()
+            final var orp = new OptimalRiskyPortfolio(symbolStatisticsRepository, selection);
+            var allocation = orp.calculate();
+            allocation = allocation.entrySet().stream()
                 .collect(Collectors.toMap(
                     Map.Entry::getKey,
                     entry -> {
                         if (entry.getKey().equals(SymbolStatisticsRepository.INDEX_NAME)) {
-                            return entry.getValue() * (1.0 + indexReturns.get(day));
+                            return entry.getValue() * indexReturns.get(day);
                         } else {
-                            return entry.getValue() * (1.0 + returnCopy.get(entry.getKey()).get(day));
+                            return entry.getValue() * stockReturns.get(entry.getKey()).get(day);
                         }
                     }
                 ));
-
             final var oldPortfolioValue = portfolioValue;
-            portfolioValue = valuation.values().stream().mapToDouble(d -> d * oldPortfolioValue).sum();
+            portfolioValue = oldPortfolioValue + allocation.values().stream().mapToDouble(d -> d * oldPortfolioValue).sum();
+            totalDays = ChronoUnit.DAYS.between(TRADE_DATE, day);
+
+            System.out.println(allocation.entrySet());
             System.out.printf(
-                "Starting capital: %s, Day: %s(%s), Benefit: %.2f$(%.2f$), Rate (d): %.3f%n",
-                STARTING_CAPITAL,
-                ChronoUnit.DAYS.between(TRADE_DATE, day),
+                "Date: %s(%s/%s), Value: %s, Benefit: %.2f$ (%.2f$), Rate (d): %.3f%n%n",
                 day,
+                ++tradedDays,
+                totalDays,
+                portfolioValue,
                 portfolioValue - STARTING_CAPITAL,
                 portfolioValue - oldPortfolioValue,
-                100 * ((portfolioValue / oldPortfolioValue) - 1.0)
+                (portfolioValue / oldPortfolioValue) - 1.0
             );
 
             symbolStatisticsRepository.increment();
-            es.reinitialize();
+
         }
-        // todo: take real duration instead of hardcoded value
-        var perf = computePerformance(portfolioValue, 720.0 / 365.0);
+        final var perf = computePerformance(portfolioValue, totalDays / 365.0);
         return portfolioValue;
     }
 
@@ -107,9 +107,5 @@ class OptimalRiskyPortfolioTest {
     ) {
         // r = n[(A/P)1/nt - 1]
         return pow((portfolioValue / OptimalRiskyPortfolioTest.STARTING_CAPITAL), 1.0 / time) - 1.0;
-    }
-
-    private static <K, V> Map<K, V> getCopy(Map<K, V> map) {
-        return map.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 }

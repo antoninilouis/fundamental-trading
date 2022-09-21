@@ -1,7 +1,6 @@
 package com.el;
 
 import java.time.LocalDate;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -10,7 +9,6 @@ import java.util.stream.Collectors;
 public class EquityScreener {
 
     private final SymbolStatisticsRepository symbolStatisticsRepository;
-    private final Map<String, Double> capmStore = new HashMap<>();
 
     public EquityScreener(
         SymbolStatisticsRepository symbolStatisticsRepository
@@ -23,20 +21,11 @@ public class EquityScreener {
         return symbols.stream().filter(this::testSymbol).collect(Collectors.toSet());
     }
 
-    public void reinitialize() {
-        capmStore.clear();
-    }
-
     private boolean testSymbol(String symbol) {
         final var stockPrices = symbolStatisticsRepository.getPastStockPrices(symbol);
         final var stockDividends = symbolStatisticsRepository.getPastStockDividends(symbol);
 
-        // capm
-        var k = this.capmStore.get(symbol);
-        if (k == null) {
-            k = CAPM.compute(symbolStatisticsRepository, symbol);
-            this.capmStore.put(symbol, k);
-        }
+        var k = CAPM.compute(symbolStatisticsRepository, symbol);
 
         // expected return
         final var returnOnEquity = symbolStatisticsRepository.getStockReturnOnEquity(symbol);

@@ -287,7 +287,6 @@ public class SymbolStatisticsRepository {
             .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
     }
 
-    // todo: store regression results computation
     public RegressionResults getPastStockRegressionResults(String symbol) {
         final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
         final var reg = new SimpleRegression();
