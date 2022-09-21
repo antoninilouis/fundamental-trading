@@ -33,7 +33,7 @@ public class SymbolStatisticsRepository {
         this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
 
-        if (indexPrices.size() < 1200) {
+        if (indexPrices.size() < 750) {
             throw new RuntimeException("Missing index data");
         }
 
@@ -46,7 +46,7 @@ public class SymbolStatisticsRepository {
         this.stockPrices = new HashMap<>();
         symbols.forEach(symbol -> this.stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES)));
 
-        this.symbols = symbols.stream().filter(s -> getPastStockPrices(s).size() >= 1200).collect(Collectors.toSet());
+        this.symbols = symbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
         this.symbols.forEach(symbol -> {
             this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
             this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
@@ -65,7 +65,7 @@ public class SymbolStatisticsRepository {
         this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
 
-        if (indexPrices.size() < 1200) {
+        if (indexPrices.size() < 750) {
             throw new RuntimeException("Missing index data");
         }
 
@@ -78,7 +78,7 @@ public class SymbolStatisticsRepository {
         AlpacaService alpacaService = new AlpacaService();
         this.stockPrices = alpacaService.getMultiBars(symbols, from, to);
 
-        this.symbols = symbols.stream().filter(s -> getPastStockPrices(s).size() >= 1200).collect(Collectors.toSet());
+        this.symbols = symbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
         this.symbols.forEach(symbol -> {
             this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
             this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
@@ -287,6 +287,7 @@ public class SymbolStatisticsRepository {
             .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
     }
 
+    // todo: store regression results computation
     public RegressionResults getPastStockRegressionResults(String symbol) {
         final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
         final var reg = new SimpleRegression();

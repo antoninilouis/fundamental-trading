@@ -16,7 +16,7 @@ import static java.lang.Math.pow;
 
 class OptimalRiskyPortfolioTest {
 
-    public static final LocalDate TRADE_DATE = LocalDate.of(2021, 1, 1);
+    public static final LocalDate TRADE_DATE = LocalDate.of(2019, 1, 3);
     public static final Double STARTING_CAPITAL = 10_000.0;
 
     @Test
@@ -34,7 +34,7 @@ class OptimalRiskyPortfolioTest {
         final var symbolStatisticsRepository = new SymbolStatisticsRepository(
             TRADE_DATE,
             ZonedDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
-            ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
+            ZonedDateTime.of(LocalDate.of(2021, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
         );
         computePortfolioValue(symbolStatisticsRepository);
     }
@@ -42,6 +42,7 @@ class OptimalRiskyPortfolioTest {
     private double computePortfolioValue(
         SymbolStatisticsRepository symbolStatisticsRepository
     ) {
+        final var es = new EquityScreener(symbolStatisticsRepository);
         final var indexReturns = symbolStatisticsRepository.getNewIndexReturns();
         Double portfolioValue = STARTING_CAPITAL;
         Map<String, java.util.LinkedHashMap<LocalDate, Double>> stockReturns;
@@ -50,8 +51,6 @@ class OptimalRiskyPortfolioTest {
 
         for (LocalDate i = TRADE_DATE; i.isBefore(TRADE_DATE.plusDays(720)); i = i.plusDays(1)) {
             final LocalDate day = i;
-
-            final var es = new EquityScreener(symbolStatisticsRepository);
             final var selection = es.screenEquities();
             final var orp = new OptimalRiskyPortfolio(symbolStatisticsRepository, selection);
             allocation = orp.calculate();
