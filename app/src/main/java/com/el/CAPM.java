@@ -18,7 +18,7 @@ public class CAPM {
         // rf
         var rf = tBillsReturns.entrySet().stream().max(Map.Entry.comparingByKey()).orElseThrow().getValue() / 100.0;
         // Bi
-        var beta = symbolStatisticsRepository.getPastStockRegressionResults(symbol).getSlope();
+        var beta = symbolStatisticsRepository.getStockRegressionResults(symbol).getSlope();
         return rf + beta * (erm - rf);
     }
 

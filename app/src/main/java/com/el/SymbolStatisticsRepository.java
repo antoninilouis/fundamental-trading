@@ -24,6 +24,7 @@ public class SymbolStatisticsRepository {
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends = new HashMap<>();
     private final Map<String, Double> stockReturnOnEquity = new HashMap<>();
     private final Map<String, Double> stockDividendPayoutRatio = new HashMap<>();
+    private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
 
     public final static String INDEX_NAME = "GSPC";
 
@@ -53,6 +54,7 @@ public class SymbolStatisticsRepository {
             try {
                 this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
                 this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
+                this.setStockRegressionResult(symbol);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -85,6 +87,7 @@ public class SymbolStatisticsRepository {
             try {
                 this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
                 this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
+                this.setStockRegressionResult(symbol);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -287,8 +290,14 @@ public class SymbolStatisticsRepository {
             .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
     }
 
-    public RegressionResults getPastStockRegressionResults(String symbol) {
-        final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
+    public RegressionResults getStockRegressionResults(String symbol) {
+        if (!stockRegressionResults.containsKey(symbol)) {
+            throw new RuntimeException("No regression results for " + symbol);
+        }
+        return stockRegressionResults.get(symbol);
+    }
+
+    private void setStockRegressionResult(String symbol) {
         final var reg = new SimpleRegression();
         final var indexReturns = getPastIndexReturns();
         final var stockReturns = getPastStockReturns(symbol);
@@ -304,11 +313,10 @@ public class SymbolStatisticsRepository {
             reg.getSumSquaredErrors(),
             reg.getMeanSquareError()
         ));
-        return stockRegressionResults.get(symbol);
     }
 
-    public Map<String, RegressionResults> getPastStockRegressionResults(Set<String> symbols) {
-        return symbols.stream().collect(Collectors.toMap(symbol -> symbol, this::getPastStockRegressionResults));
+    public Map<String, RegressionResults> getStockRegressionResults(Set<String> symbols) {
+        return symbols.stream().collect(Collectors.toMap(symbol -> symbol, this::getStockRegressionResults));
     }
 
     public void increment() {

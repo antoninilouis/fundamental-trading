@@ -28,7 +28,7 @@ public class OptimalRiskyPortfolio {
             return optimalAllocation;
         }
 
-        var regressionResults = symbolStatisticsRepository.getPastStockRegressionResults(selection);
+        var regressionResults = symbolStatisticsRepository.getStockRegressionResults(selection);
 
         // 1) Calculate the initial weight of each stock in the active portfolio
         var initialWeights = regressionResults.entrySet().stream()
