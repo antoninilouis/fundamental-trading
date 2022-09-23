@@ -14,8 +14,8 @@ public class CAPM {
         // todo: verify if erm needs to be annual or daily
         // E(Rm)
         var erm = calculateMeanMarketReturns(indexReturns);
-        // todo: verify if rf is in % or decimal
-        // rf
+        // todo: use the 52-weeks (annual return) instead of 13-weeks
+        // rf T-Bills returns are in %
         var rf = tBillsReturns.entrySet().stream().max(Map.Entry.comparingByKey()).orElseThrow().getValue() / 100.0;
         // Bi
         var beta = symbolStatisticsRepository.getStockRegressionResults(symbol).getSlope();

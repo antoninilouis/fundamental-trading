@@ -54,7 +54,7 @@ public class SymbolStatisticsRepository {
             try {
                 this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
                 this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
-                this.setStockRegressionResult(symbol);
+                this.computeStockRegressionResult(symbol);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -87,7 +87,7 @@ public class SymbolStatisticsRepository {
             try {
                 this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
                 this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
-                this.setStockRegressionResult(symbol);
+                this.computeStockRegressionResult(symbol);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -290,14 +290,7 @@ public class SymbolStatisticsRepository {
             .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
     }
 
-    public RegressionResults getStockRegressionResults(String symbol) {
-        if (!stockRegressionResults.containsKey(symbol)) {
-            throw new RuntimeException("No regression results for " + symbol);
-        }
-        return stockRegressionResults.get(symbol);
-    }
-
-    private void setStockRegressionResult(String symbol) {
+    public void computeStockRegressionResult(String symbol) {
         final var reg = new SimpleRegression();
         final var indexReturns = getPastIndexReturns();
         final var stockReturns = getPastStockReturns(symbol);
@@ -313,6 +306,13 @@ public class SymbolStatisticsRepository {
             reg.getSumSquaredErrors(),
             reg.getMeanSquareError()
         ));
+    }
+
+    public RegressionResults getStockRegressionResults(String symbol) {
+        if (!stockRegressionResults.containsKey(symbol)) {
+            throw new RuntimeException("No regression results for " + symbol);
+        }
+        return stockRegressionResults.get(symbol);
     }
 
     public Map<String, RegressionResults> getStockRegressionResults(Set<String> symbols) {

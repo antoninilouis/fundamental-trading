@@ -49,7 +49,7 @@ class OptimalRiskyPortfolioTest {
         int tradedDays = 0;
         long totalDays = 0;
 
-        for (LocalDate i = TRADE_DATE; i.isBefore(TRADE_DATE.plusDays(720)); i = i.plusDays(1)) {
+        for (LocalDate i = TRADE_DATE; i.isBefore(TRADE_DATE.plusDays(1200)); i = i.plusDays(1)) {
             final LocalDate day = i;
             final var selection = es.screenEquities();
             final var stockReturns = symbolStatisticsRepository.getNewStockReturns(selection);
@@ -95,7 +95,6 @@ class OptimalRiskyPortfolioTest {
             );
 
             symbolStatisticsRepository.increment();
-
         }
         final var perf = computePerformance(portfolioValue, totalDays / 365.0);
         return portfolioValue;
