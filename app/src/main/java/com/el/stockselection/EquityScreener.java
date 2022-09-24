@@ -1,4 +1,6 @@
-package com.el;
+package com.el.stockselection;
+
+import com.el.marketdata.MarketDataRepository;
 
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
@@ -8,28 +10,28 @@ import java.util.stream.Collectors;
 
 public class EquityScreener {
 
-    private final SymbolStatisticsRepository symbolStatisticsRepository;
+    private final MarketDataRepository marketDataRepository;
 
     public EquityScreener(
-        SymbolStatisticsRepository symbolStatisticsRepository
+        MarketDataRepository marketDataRepository
     ) {
-        this.symbolStatisticsRepository = symbolStatisticsRepository;
+        this.marketDataRepository = marketDataRepository;
     }
 
     public Set<String> screenEquities() {
-        final var symbols = symbolStatisticsRepository.getSymbols();
+        final var symbols = marketDataRepository.getSymbols();
         return symbols.stream().filter(this::testSymbol).collect(Collectors.toSet());
     }
 
     private boolean testSymbol(String symbol) {
-        final var stockPrices = symbolStatisticsRepository.getPastStockPrices(symbol);
-        final var stockDividends = symbolStatisticsRepository.getPastStockDividends(symbol);
+        final var stockPrices = marketDataRepository.getPastStockPrices(symbol);
+        final var stockDividends = marketDataRepository.getPastStockDividends(symbol);
 
-        var k = CAPM.compute(symbolStatisticsRepository, symbol);
+        var k = CAPM.compute(marketDataRepository, symbol);
 
         // expected return
-        final var returnOnEquity = symbolStatisticsRepository.getStockReturnOnEquity(symbol);
-        final var dividendPayoutRatio = symbolStatisticsRepository.getStockDividendPayoutRatio(symbol);
+        final var returnOnEquity = marketDataRepository.getStockReturnOnEquity(symbol);
+        final var dividendPayoutRatio = marketDataRepository.getStockDividendPayoutRatio(symbol);
         final Double growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
         final var er = computeExpectedReturnsOnShare(stockPrices, stockDividends, growthRate);
 
@@ -72,6 +74,7 @@ public class EquityScreener {
         final double latestPrice = stockPrices.entrySet().stream()
             .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
         // E(D0)
+        // todo: verify in which units the dividends are
         final double latestDividend = stockDividends.entrySet().stream()
             .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
         // E(P1)

@@ -1,4 +1,4 @@
-package com.el;
+package com.el.marketdata;
 
 public class RegressionResults {
 

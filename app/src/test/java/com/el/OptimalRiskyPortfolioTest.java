@@ -1,5 +1,7 @@
 package com.el;
 
+import com.el.marketdata.MarketDataRepository;
+import com.el.stockselection.EquityScreener;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -25,7 +27,7 @@ class OptimalRiskyPortfolioTest {
     @Disabled
     public void tryOptimalAllocation()
     {
-        final var symbolStatisticsRepository = new SymbolStatisticsRepository(TRADE_DATE);
+        final var symbolStatisticsRepository = new MarketDataRepository(TRADE_DATE);
         computePortfolioValue(symbolStatisticsRepository);
     }
 
@@ -33,7 +35,7 @@ class OptimalRiskyPortfolioTest {
     @Disabled
     public void tryAlpacaDataAPI()
     {
-        final var symbolStatisticsRepository = new SymbolStatisticsRepository(
+        final var symbolStatisticsRepository = new MarketDataRepository(
             TRADE_DATE,
             ZonedDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
             ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
@@ -42,9 +44,9 @@ class OptimalRiskyPortfolioTest {
     }
 
     private double computePortfolioValue(
-        SymbolStatisticsRepository symbolStatisticsRepository
+        MarketDataRepository marketDataRepository
     ) {
-        final var es = new EquityScreener(symbolStatisticsRepository);
+        final var es = new EquityScreener(marketDataRepository);
         Double portfolioValue = STARTING_CAPITAL;
         int tradedDays = 0;
         long totalDays = 0;
@@ -52,8 +54,8 @@ class OptimalRiskyPortfolioTest {
         for (LocalDate i = TRADE_DATE; i.isBefore(TRADE_DATE.plusDays(1200)); i = i.plusDays(1)) {
             final LocalDate day = i;
             final var selection = es.screenEquities();
-            final var stockReturns = symbolStatisticsRepository.getNewStockReturns(selection);
-            final var indexReturns = symbolStatisticsRepository.getNewIndexReturns();
+            final var stockReturns = marketDataRepository.getNewStockReturns(selection);
+            final var indexReturns = marketDataRepository.getNewIndexReturns();
 
             final var missing = stockReturns.values().stream().filter(returns -> !returns.containsKey(day)).count();
             try {
@@ -65,13 +67,13 @@ class OptimalRiskyPortfolioTest {
                 continue;
             }
 
-            final var orp = new OptimalRiskyPortfolio(symbolStatisticsRepository, selection);
+            final var orp = new OptimalRiskyPortfolio(marketDataRepository, selection);
             var allocation = orp.calculate();
             allocation = allocation.entrySet().stream()
                 .collect(Collectors.toMap(
                     Map.Entry::getKey,
                     entry -> {
-                        if (entry.getKey().equals(SymbolStatisticsRepository.INDEX_NAME)) {
+                        if (entry.getKey().equals(MarketDataRepository.INDEX_NAME)) {
                             return entry.getValue() * indexReturns.get(day);
                         } else {
                             return entry.getValue() * stockReturns.get(entry.getKey()).get(day);
@@ -94,7 +96,7 @@ class OptimalRiskyPortfolioTest {
                 (portfolioValue / oldPortfolioValue) - 1.0
             );
 
-            symbolStatisticsRepository.increment();
+            marketDataRepository.increment();
         }
         final var perf = computePerformance(portfolioValue, totalDays / 365.0);
         return portfolioValue;

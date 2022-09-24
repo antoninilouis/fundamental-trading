@@ -1,5 +1,6 @@
-package com.el;
+package com.el.marketdata;
 
+import com.el.marketdata.MarketDataRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -7,13 +8,13 @@ import java.util.LinkedHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class SymbolStatisticsRepositoryTest {
+public class MarketDataRepositoryTest {
 
     @Test
     public void testLoadResources()
     {
         final var tradeDate = LocalDate.of(2022,5, 27);
-        final var es = new SymbolStatisticsRepository(tradeDate);
+        final var es = new MarketDataRepository(tradeDate);
         final LinkedHashMap<LocalDate, Double> indexPrices = es.getIndexPrices();
         final LinkedHashMap<LocalDate, Double> tBillsReturns = es.getPastTbReturns();
 
@@ -49,6 +50,6 @@ public class SymbolStatisticsRepositoryTest {
         stockReturns.put(LocalDate.parse("2021-05-13"), -0.009299401273885288);
         stockReturns.put(LocalDate.parse("2021-05-17"), 0.002571737272922814);
 
-        assertEquals(SymbolStatisticsRepository.toReturnPercents(stockPrices), stockReturns);
+        assertEquals(MarketDataRepository.toReturnPercents(stockPrices), stockReturns);
     }
 }

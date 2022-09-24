@@ -1,5 +1,6 @@
-package com.el;
+package com.el.marketdata;
 
+import com.el.Application;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
 import java.io.BufferedReader;
@@ -11,7 +12,7 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class SymbolStatisticsRepository {
+public class MarketDataRepository {
 
     private LocalDate tradeDate;
 
@@ -28,7 +29,7 @@ public class SymbolStatisticsRepository {
 
     public final static String INDEX_NAME = "GSPC";
 
-    public SymbolStatisticsRepository(final LocalDate tradeDate) {
+    public MarketDataRepository(final LocalDate tradeDate) {
         this.tradeDate = tradeDate;
         this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
         this.indexReturns = toReturnPercents(indexPrices);
@@ -61,7 +62,7 @@ public class SymbolStatisticsRepository {
         });
     }
 
-    public SymbolStatisticsRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
+    public MarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
         this.tradeDate = tradeDate;
         this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
         this.indexReturns = toReturnPercents(indexPrices);

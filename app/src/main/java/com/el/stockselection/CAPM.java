@@ -1,4 +1,6 @@
-package com.el;
+package com.el.stockselection;
+
+import com.el.marketdata.MarketDataRepository;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -6,19 +8,18 @@ import java.util.Map;
 public class CAPM {
 
     static double compute(
-        final SymbolStatisticsRepository symbolStatisticsRepository,
+        final MarketDataRepository marketDataRepository,
         final String symbol
     ) {
-        final var indexReturns = symbolStatisticsRepository.getPastIndexReturns();
-        final var tBillsReturns = symbolStatisticsRepository.getPastTbReturns();
-        // todo: verify if erm needs to be annual or daily
+        final var indexReturns = marketDataRepository.getPastIndexReturns();
+        final var tBillsReturns = marketDataRepository.getPastTbReturns();
         // E(Rm)
         var erm = calculateMeanMarketReturns(indexReturns);
         // todo: use the 52-weeks (annual return) instead of 13-weeks
         // rf T-Bills returns are in %
         var rf = tBillsReturns.entrySet().stream().max(Map.Entry.comparingByKey()).orElseThrow().getValue() / 100.0;
         // Bi
-        var beta = symbolStatisticsRepository.getStockRegressionResults(symbol).getSlope();
+        var beta = marketDataRepository.getStockRegressionResults(symbol).getSlope();
         return rf + beta * (erm - rf);
     }
 

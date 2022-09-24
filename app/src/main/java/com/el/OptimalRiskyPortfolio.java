@@ -1,5 +1,7 @@
 package com.el;
 
+import com.el.marketdata.MarketDataRepository;
+import com.el.stockselection.CAPM;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.util.HashMap;
@@ -12,11 +14,11 @@ import static java.util.Map.Entry;
 
 public class OptimalRiskyPortfolio {
 
-    final private SymbolStatisticsRepository symbolStatisticsRepository;
+    final private MarketDataRepository marketDataRepository;
     final private Set<String> selection;
 
-    public OptimalRiskyPortfolio(SymbolStatisticsRepository symbolStatisticsRepository, Set<String> selection) {
-        this.symbolStatisticsRepository = symbolStatisticsRepository;
+    public OptimalRiskyPortfolio(MarketDataRepository marketDataRepository, Set<String> selection) {
+        this.marketDataRepository = marketDataRepository;
         this.selection = selection;
     }
 
@@ -24,11 +26,11 @@ public class OptimalRiskyPortfolio {
         Map<String, Double> optimalAllocation = new HashMap<>();
 
         if (selection.size() == 0) {
-            optimalAllocation.put(SymbolStatisticsRepository.INDEX_NAME, 1.0);
+            optimalAllocation.put(MarketDataRepository.INDEX_NAME, 1.0);
             return optimalAllocation;
         }
 
-        var regressionResults = symbolStatisticsRepository.getStockRegressionResults(selection);
+        var regressionResults = marketDataRepository.getStockRegressionResults(selection);
 
         // 1) Calculate the initial weight of each stock in the active portfolio
         var initialWeights = regressionResults.entrySet().stream()
@@ -61,9 +63,9 @@ public class OptimalRiskyPortfolio {
 
         // 6) Calculate the initial weight of the active portfolio
         var ds = new DescriptiveStatistics();
-        symbolStatisticsRepository.getPastIndexReturns().values().forEach(ds::addValue);
+        marketDataRepository.getPastIndexReturns().values().forEach(ds::addValue);
         var marketVariance = ds.getVariance();
-        var erm = CAPM.calculateMeanMarketReturns(symbolStatisticsRepository.getPastIndexReturns());
+        var erm = CAPM.calculateMeanMarketReturns(marketDataRepository.getPastIndexReturns());
         var portfolioInitialWeight = (portfolioWeightedAlphas / portfolioResidualVariance) / (erm / marketVariance);
 
         // 7) Calculate the final weight of the active portfolio by adjusting for βA
@@ -80,7 +82,7 @@ public class OptimalRiskyPortfolio {
         double marketWeight = 1.0 - portfolioFinalWeight;
         double expectedRiskPremium = portfolioFinalWeight * portfolioWeightedAlphas + (marketWeight + portfolioWeightedAlphas * portfolioWeightedBeta) * erm;
 
-        optimalAllocation.put(SymbolStatisticsRepository.INDEX_NAME, marketWeight);
+        optimalAllocation.put(MarketDataRepository.INDEX_NAME, marketWeight);
         return optimalAllocation;
     }
 }
