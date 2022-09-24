@@ -7,30 +7,32 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class MarketDataRepository {
+public abstract class MarketDataRepository {
 
     private LocalDate tradeDate;
 
-    private final Set<String> symbols;
     private final LinkedHashMap<LocalDate, Double> indexPrices;
     private final LinkedHashMap<LocalDate, Double> indexReturns;
     private final LinkedHashMap<LocalDate, Double> tbReturns;
+    private final Set<String> symbols;
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices;
+    private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockReturns = new HashMap<>();
     private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends = new HashMap<>();
     private final Map<String, Double> stockReturnOnEquity = new HashMap<>();
     private final Map<String, Double> stockDividendPayoutRatio = new HashMap<>();
-    private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
 
     public final static String INDEX_NAME = "GSPC";
 
     public MarketDataRepository(final LocalDate tradeDate) {
         this.tradeDate = tradeDate;
+        final var allSymbols = extractSymbols();
+        this.stockPrices = getStockPrices(allSymbols);
+        this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
         this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
         this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
@@ -43,45 +45,6 @@ public class MarketDataRepository {
             throw new RuntimeException("No T-bill returns");
         }
 
-        // Specific to file extraction
-        final var symbols = extractSymbols();
-        this.stockPrices = new HashMap<>();
-        symbols.forEach(symbol -> this.stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES)));
-
-        this.symbols = symbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
-        this.symbols.forEach(symbol -> {
-            this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
-            this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
-            try {
-                this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
-                this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
-                this.computeStockRegressionResult(symbol);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        });
-    }
-
-    public MarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
-        this.tradeDate = tradeDate;
-        this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
-        this.indexReturns = toReturnPercents(indexPrices);
-        this.tbReturns = extractTBillsReturns();
-
-        if (indexPrices.size() < 750) {
-            throw new RuntimeException("Missing index data");
-        }
-
-        if (getPastTbReturns().size() < 1) {
-            throw new RuntimeException("No T-bill returns");
-        }
-
-        // Specific to API extraction
-        final var symbols = extractSymbols();
-        AlpacaService alpacaService = new AlpacaService();
-        this.stockPrices = alpacaService.getMultiBars(symbols, from, to);
-
-        this.symbols = symbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
         this.symbols.forEach(symbol -> {
             this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
             this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
@@ -96,6 +59,8 @@ public class MarketDataRepository {
     }
 
     // Compute
+
+    abstract Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols);
 
     static LinkedHashMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
         final var copy = getCopy(prices);
@@ -140,7 +105,7 @@ public class MarketDataRepository {
         return symbols;
     }
 
-    private static Double extractSingleValue(String symbol, final ResourceTypes type) throws IOException {
+    protected static Double extractSingleValue(String symbol, final ResourceTypes type) throws IOException {
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(type.getPath() + symbol));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
             final var line = reader.readLine();
@@ -149,14 +114,14 @@ public class MarketDataRepository {
         }
     }
 
-    private static LinkedHashMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
+    protected static LinkedHashMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
         return byBufferedReader(
             type.getPath() + symbol + ".csv",
             DupKeyOption.OVERWRITE
         );
     }
 
-    private static LinkedHashMap<LocalDate, Double> extractTBillsReturns() {
+    protected static LinkedHashMap<LocalDate, Double> extractTBillsReturns() {
         return byBufferedReader(
             "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
@@ -206,7 +171,7 @@ public class MarketDataRepository {
         OVERWRITE, DISCARD
     }
 
-    private enum ResourceTypes {
+    protected enum ResourceTypes {
         DIVIDENDS("dividends/"),
         PAYOUT_RATIOS("payoutRatios/"),
         PRICES("prices/"),

@@ -1,5 +1,7 @@
 package com.el;
 
+import com.el.marketdata.AlpacaMarketDataRepository;
+import com.el.marketdata.LocalMarketDataRepository;
 import com.el.marketdata.MarketDataRepository;
 import com.el.stockselection.EquityScreener;
 import org.junit.jupiter.api.Disabled;
@@ -27,7 +29,7 @@ class OptimalRiskyPortfolioTest {
     @Disabled
     public void tryOptimalAllocation()
     {
-        final var symbolStatisticsRepository = new MarketDataRepository(TRADE_DATE);
+        final var symbolStatisticsRepository = new LocalMarketDataRepository(TRADE_DATE);
         computePortfolioValue(symbolStatisticsRepository);
     }
 
@@ -35,7 +37,7 @@ class OptimalRiskyPortfolioTest {
     @Disabled
     public void tryAlpacaDataAPI()
     {
-        final var symbolStatisticsRepository = new MarketDataRepository(
+        final var symbolStatisticsRepository = new AlpacaMarketDataRepository(
             TRADE_DATE,
             ZonedDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
             ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
