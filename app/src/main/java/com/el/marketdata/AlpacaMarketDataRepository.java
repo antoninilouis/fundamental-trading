@@ -8,17 +8,12 @@ import java.util.Set;
 
 public class AlpacaMarketDataRepository extends MarketDataRepository {
 
-    private final Instant from;
-    private final Instant to;
-
     public AlpacaMarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
-        super(tradeDate);
-        this.from = from;
-        this.to = to;
+        super(tradeDate, from, to);
     }
 
     @Override
-    Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols) {
+    Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
         final AlpacaService alpacaService = new AlpacaService();
         return alpacaService.getMultiBars(symbols, from, to);
     }

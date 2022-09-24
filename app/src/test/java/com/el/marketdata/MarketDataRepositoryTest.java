@@ -14,7 +14,7 @@ public class MarketDataRepositoryTest {
     public void testLoadResources()
     {
         final var tradeDate = LocalDate.of(2022,5, 27);
-        final var es = new LocalMarketDataRepository(tradeDate);
+        final var es = new LocalMarketDataRepository(tradeDate, null, null);
         final LinkedHashMap<LocalDate, Double> indexPrices = es.getIndexPrices();
         final LinkedHashMap<LocalDate, Double> tBillsReturns = es.getPastTbReturns();
 

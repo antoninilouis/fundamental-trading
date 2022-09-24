@@ -29,7 +29,7 @@ class OptimalRiskyPortfolioTest {
     @Disabled
     public void tryOptimalAllocation()
     {
-        final var symbolStatisticsRepository = new LocalMarketDataRepository(TRADE_DATE);
+        final var symbolStatisticsRepository = new LocalMarketDataRepository(TRADE_DATE, null, null);
         computePortfolioValue(symbolStatisticsRepository);
     }
 

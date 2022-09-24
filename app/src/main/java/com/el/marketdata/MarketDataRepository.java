@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,10 +29,10 @@ public abstract class MarketDataRepository {
 
     public final static String INDEX_NAME = "GSPC";
 
-    public MarketDataRepository(final LocalDate tradeDate) {
+    public MarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
         this.tradeDate = tradeDate;
         final var allSymbols = extractSymbols();
-        this.stockPrices = getStockPrices(allSymbols);
+        this.stockPrices = getStockPrices(allSymbols, from, to);
         this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
         this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
         this.indexReturns = toReturnPercents(indexPrices);
@@ -60,7 +61,7 @@ public abstract class MarketDataRepository {
 
     // Compute
 
-    abstract Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols);
+    abstract Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
 
     static LinkedHashMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
         final var copy = getCopy(prices);

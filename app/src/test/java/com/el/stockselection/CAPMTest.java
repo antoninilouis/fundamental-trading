@@ -13,7 +13,7 @@ public class CAPMTest
     @Test
     public void calculateMeanMarketReturns() {
         final var tradeDate = LocalDate.of(2022, 9, 1);
-        final var es = new LocalMarketDataRepository(tradeDate);
+        final var es = new LocalMarketDataRepository(tradeDate, null, null);
         final var indexReturns = es.getPastIndexReturns();
         final var erm = toDailyReturn(CAPM.calculateMeanMarketReturns(indexReturns));
         assertEquals(indexReturns.values().stream().reduce(100.0, (a, b) -> a * (1 + b)),
