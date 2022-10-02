@@ -50,6 +50,22 @@ public class LocalMarketDataRepository extends MarketDataRepository {
     return stockDividends;
   }
 
+  @Override
+  protected Map<String, TreeMap<LocalDate, Double>> getLatestStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
+    final var stockReturnOnEquity = new HashMap<String, TreeMap<LocalDate, Double>>();
+    symbols.forEach(symbol -> {
+      try {
+        final var tm = new TreeMap<LocalDate, Double>();
+        // Hack date of extracted single value to 'from', so value is always available in calculations
+        tm.put(LocalDate.ofInstant(from, ZoneId.of("America/New_York")), extractSingleValue(symbol, ResourceTypes.ROES));
+        stockReturnOnEquity.put(symbol, tm);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+    return stockReturnOnEquity;
+  }
+
   protected static TreeMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type, Instant from, Instant to) {
     return byBufferedReader(type.getPath() + symbol + ".csv", DupKeyOption.OVERWRITE).entrySet().stream()
       .filter(e -> !e.getKey().isBefore(LocalDate.ofInstant(from, ZoneId.of("America/New_York")))

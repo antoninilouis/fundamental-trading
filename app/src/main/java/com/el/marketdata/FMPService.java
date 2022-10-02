@@ -88,6 +88,7 @@ public class FMPService {
   }
 
   public TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
+    // todo: handle cases where loop can be infinite
     var tmpFrom = LocalDate.ofInstant(from, ZoneId.of("America/New_York"));
     var tmpTo = LocalDate.ofInstant(to, ZoneId.of("America/New_York"));
     var map = new TreeMap<LocalDate, Double>();
@@ -105,7 +106,6 @@ public class FMPService {
     return map;
   }
 
-  // fixme: handle cases where no dividend is present
   public Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
     return symbols.stream().collect(Collectors.toMap(
       Function.identity(),
@@ -122,6 +122,27 @@ public class FMPService {
           .collect(Collectors.toMap(
             n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
             n -> Double.valueOf(n.get("dividend").toString()),
+            (o1, o2) -> o1,
+            TreeMap::new
+          ));
+      }
+    ));
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
+    // todo: handle cases where no return on equity is present in the response
+    return symbols.stream().collect(Collectors.toMap(
+      Function.identity(),
+      symbol -> {
+        final Request request = new Request.Builder()
+          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
+          .method("GET", null)
+          .build();
+        final var jsonNode = extract(request);
+        return StreamSupport.stream(jsonNode.spliterator(), false)
+          .collect(Collectors.toMap(
+            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
+            n -> Double.valueOf(n.get("returnOnEquity").toString()),
             (o1, o2) -> o1,
             TreeMap::new
           ));

@@ -22,9 +22,9 @@ public abstract class MarketDataRepository {
   private final Set<String> symbols;
   private final Map<String, TreeMap<LocalDate, Double>> stockPrices;
   private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
-  private final Map<String, TreeMap<LocalDate, Double>> stockReturns = new HashMap<>();
+  private final Map<String, TreeMap<LocalDate, Double>> stockReturns;
   private final Map<String, TreeMap<LocalDate, Double>> stockDividends;
-  private final Map<String, Double> stockReturnOnEquity = new HashMap<>();
+  private final Map<String, TreeMap<LocalDate, Double>> stockReturnOnEquity;
   private final Map<String, Double> stockDividendPayoutRatio = new HashMap<>();
   private LocalDate tradeDate;
 
@@ -36,30 +36,39 @@ public abstract class MarketDataRepository {
     this.tradeDate = tradeDate;
     final var allSymbols = extractSymbols();
     this.stockPrices = getStockPrices(allSymbols, from, to);
-    this.stockDividends = getStockDividends(allSymbols, from, to);
     this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= MIN_DATA_POINTS).collect(Collectors.toSet());
+
+    this.stockReturns = getStockReturns(stockPrices);
+    this.stockDividends = getStockDividends(allSymbols, from, to);
     this.indexPrices = getIndexPrices(from, to);
     this.indexReturns = toReturnPercents(indexPrices);
     this.tbReturns = getTbReturns(from, to);
+    this.stockReturnOnEquity = getLatestStockReturnOnEquity(this.symbols, from, to);
 
     if (indexPrices.size() < MIN_DATA_POINTS) {
       throw new RuntimeException("Missing index data");
     }
 
-    if (getPastTbReturns().size() < 1) {
+    if (getPastTbReturns().isEmpty()) {
       throw new RuntimeException("No T-bill returns");
     }
 
     this.symbols.forEach(symbol -> {
-      this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
       try {
-        this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
         this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
         this.computeStockRegressionResult(symbol);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
     });
+  }
+
+  private Map<String, TreeMap<LocalDate, Double>> getStockReturns(Map<String, TreeMap<LocalDate, Double>> stockPrices) {
+    final var stockReturns = new HashMap<String, TreeMap<LocalDate, Double>>();
+    this.symbols.forEach(symbol -> {
+      stockReturns.put(symbol, toReturnPercents(stockPrices.get(symbol)));
+    });
+    return stockReturns;
   }
 
   static TreeMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
@@ -118,6 +127,8 @@ public abstract class MarketDataRepository {
 
   protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to);
 
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getLatestStockReturnOnEquity(Set<String> symbols, Instant from, Instant to);
+
   // Read
 
   private Set<String> extractSymbols() {
@@ -175,8 +186,8 @@ public abstract class MarketDataRepository {
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
   }
 
-  public Double getStockReturnOnEquity(String symbol) {
-    return stockReturnOnEquity.get(symbol);
+  public Double getLatestStockReturnOnEquity(String symbol) {
+    return stockReturnOnEquity.get(symbol).floorEntry(tradeDate).getValue();
   }
 
   public Double getStockDividendPayoutRatio(String symbol) {

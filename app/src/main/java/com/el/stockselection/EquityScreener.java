@@ -31,7 +31,7 @@ public class EquityScreener {
     var k = CAPM.compute(marketDataRepository, symbol);
 
     // growth rate
-    final var returnOnEquity = marketDataRepository.getStockReturnOnEquity(symbol);
+    final var returnOnEquity = marketDataRepository.getLatestStockReturnOnEquity(symbol);
     final var dividendPayoutRatio = marketDataRepository.getStockDividendPayoutRatio(symbol);
     final Double growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
 

@@ -34,4 +34,9 @@ public class RemoteMarketDataRepository extends MarketDataRepository {
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
     return fmpService.getStockDividends(symbols, from, to);
   }
+
+  @Override
+  protected Map<String, TreeMap<LocalDate, Double>> getLatestStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
+    return fmpService.getStockReturnOnEquity(symbols, from, to);
+  }
 }
