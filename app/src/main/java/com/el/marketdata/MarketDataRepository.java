@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -48,7 +49,7 @@ public abstract class MarketDataRepository {
 
         this.symbols.forEach(symbol -> {
             this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
-            this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS));
+            this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS, from, to));
             try {
                 this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
                 this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
@@ -116,11 +117,11 @@ public abstract class MarketDataRepository {
         }
     }
 
-    protected static TreeMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
-        return byBufferedReader(
-            type.getPath() + symbol + ".csv",
-            DupKeyOption.OVERWRITE
-        );
+    protected static TreeMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type, Instant from, Instant to) {
+        return byBufferedReader(type.getPath() + symbol + ".csv", DupKeyOption.OVERWRITE).entrySet().stream()
+            .filter(e -> !e.getKey().isBefore(LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+                || e.getKey().isAfter(LocalDate.ofInstant(to, ZoneId.of("America/New_York"))))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
     protected static TreeMap<LocalDate, Double> extractTBillsReturns() {

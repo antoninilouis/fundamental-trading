@@ -4,7 +4,6 @@ import com.el.marketdata.LocalMarketDataRepository;
 import com.el.marketdata.MarketDataRepository;
 import com.el.marketdata.RemoteMarketDataRepository;
 import com.el.stockselection.EquityScreener;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,26 +25,28 @@ class OptimalRiskyPortfolioTest {
     private static final Double STARTING_CAPITAL = 10_000.0;
 
     @Test
-    @Disabled
-    public void tryOptimalAllocation()
+    public void backtestWithLocalMarketData()
     {
-        final var symbolStatisticsRepository = new LocalMarketDataRepository(TRADE_DATE, null, null);
-        computePortfolioValue(symbolStatisticsRepository);
-    }
-
-    @Test
-    @Disabled
-    public void tryAlpacaDataAPI()
-    {
-        final var symbolStatisticsRepository = new RemoteMarketDataRepository(
+        final var marketDataRepository = new LocalMarketDataRepository(
             TRADE_DATE,
             ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
             ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
         );
-        computePortfolioValue(symbolStatisticsRepository);
+        runBacktest(marketDataRepository);
     }
 
-    private double computePortfolioValue(
+    @Test
+    public void backtestWithNasdaq100RemoteMarketData()
+    {
+        final var marketDataRepository = new RemoteMarketDataRepository(
+            TRADE_DATE,
+            ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
+            ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
+        );
+        final var perf = runBacktest(marketDataRepository);
+    }
+
+    private double runBacktest(
         MarketDataRepository marketDataRepository
     ) {
         final var es = new EquityScreener(marketDataRepository);
@@ -100,8 +101,7 @@ class OptimalRiskyPortfolioTest {
 
             marketDataRepository.increment();
         }
-        final var perf = computePerformance(portfolioValue, totalDays / 365.0);
-        return portfolioValue;
+        return computePerformance(portfolioValue, totalDays / 365.0);
     }
 
     private static double computePerformance(
