@@ -29,6 +29,10 @@ public abstract class MarketDataRepository {
   private LocalDate tradeDate;
 
   public MarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
+    if (from.isAfter(to)) {
+      throw new IllegalArgumentException("Start date is after end date");
+    }
+
     this.tradeDate = tradeDate;
     final var allSymbols = extractSymbols();
     this.stockPrices = getStockPrices(allSymbols, from, to);
@@ -112,7 +116,7 @@ public abstract class MarketDataRepository {
 
   protected abstract TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to);
 
-  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> allSymbols, Instant from, Instant to);
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to);
 
   // Read
 
@@ -145,7 +149,7 @@ public abstract class MarketDataRepository {
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
   }
 
-  public TreeMap<LocalDate, Double> getPastStockDividends(String symbol) {
+  private TreeMap<LocalDate, Double> getPastStockDividends(String symbol) {
     final var stockDividends = this.stockDividends.get(symbol).entrySet().stream()
       .filter(e -> e.getKey().isBefore(tradeDate))
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
@@ -153,6 +157,16 @@ public abstract class MarketDataRepository {
       stockDividends.put(tradeDate.minusDays(1), 0.0);
     }
     return stockDividends;
+  }
+
+  public double getLatestDividend(String symbol) {
+    final var optLatestDividend = getPastStockDividends(symbol).entrySet().stream()
+      .max(Map.Entry.comparingByKey());
+    var latestDividend = 0.0;
+    if (optLatestDividend.isPresent()) {
+      latestDividend = optLatestDividend.get().getValue();
+    }
+    return latestDividend;
   }
 
   public TreeMap<LocalDate, Double> getPastTbReturns() {

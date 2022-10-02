@@ -18,7 +18,7 @@ import java.util.stream.StreamSupport;
 
 public class FMPService {
 
-  private static final String BASE_URL = "https://financialmodelingprep.com/api/v3";
+  private static final String BASE_URL = "https://financialmodelingprep.com/api";
   private final ObjectMapper om = new ObjectMapper();
   private final OkHttpClient client;
   private final String apikey;
@@ -38,7 +38,7 @@ public class FMPService {
 
   public void getFinancialRatios(final String symbol) {
     final Request request = new Request.Builder()
-      .url(BASE_URL + "/ratios/" + symbol + "?apikey=" + apikey)
+      .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey)
       .method("GET", null)
       .build();
     extract(request);
@@ -54,7 +54,7 @@ public class FMPService {
 
   public TreeMap<LocalDate, Double> getIndexPrices(String indexName, Instant from, Instant to) {
     final Request request = new Request.Builder()
-      .url(BASE_URL + "/historical-price-full/%5EGSPC?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
+      .url(BASE_URL + "/v3/historical-price-full/%5EGSPC?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
       .method("GET", null)
       .build();
     final var jsonNode = extract(request);
@@ -72,7 +72,7 @@ public class FMPService {
       Function.identity(),
       symbol -> {
         final Request request = new Request.Builder()
-          .url(BASE_URL + "/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
+          .url(BASE_URL + "/v3/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
         final var jsonNode = extract(request);
@@ -80,6 +80,48 @@ public class FMPService {
           .collect(Collectors.toMap(
             n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
             n -> Double.valueOf(n.get("close").toString()),
+            (o1, o2) -> o1,
+            TreeMap::new
+          ));
+      }
+    ));
+  }
+
+  public TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
+    var tmpFrom = LocalDate.ofInstant(from, ZoneId.of("America/New_York"));
+    var tmpTo = LocalDate.ofInstant(to, ZoneId.of("America/New_York"));
+    var map = new TreeMap<LocalDate, Double>();
+    while (map.isEmpty() || map.firstKey().isAfter(tmpFrom)) {
+      final Request request = new Request.Builder()
+        .url(BASE_URL + "/v4/treasury/?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
+        .method("GET", null)
+        .build();
+      final var jsonNode = extract(request);
+      StreamSupport.stream(jsonNode.spliterator(), false)
+        .forEach(e -> map.put(LocalDate.parse(e.get("date").toString().replaceAll("\"", "")),
+          Double.valueOf(e.get("month3").toString())));
+      tmpTo = map.firstKey().minusDays(1);
+    }
+    return map;
+  }
+
+  // fixme: handle cases where no dividend is present
+  public Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
+    return symbols.stream().collect(Collectors.toMap(
+      Function.identity(),
+      symbol -> {
+        final Request request = new Request.Builder()
+          .url(BASE_URL + "/v3/historical-price-full/stock_dividend/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
+          .method("GET", null)
+          .build();
+        final var jsonNode = extract(request);
+        if (jsonNode.get("historical") == null) {
+          return new TreeMap<>();
+        }
+        return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
+          .collect(Collectors.toMap(
+            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
+            n -> Double.valueOf(n.get("dividend").toString()),
             (o1, o2) -> o1,
             TreeMap::new
           ));

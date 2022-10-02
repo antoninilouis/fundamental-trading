@@ -42,9 +42,9 @@ public class LocalMarketDataRepository extends MarketDataRepository {
   }
 
   @Override
-  protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> allSymbols, Instant from, Instant to) {
+  protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
     final var stockDividends = new HashMap<String, TreeMap<LocalDate, Double>>();
-    allSymbols.forEach(symbol -> {
+    symbols.forEach(symbol -> {
        stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS, from, to));
     });
     return stockDividends;

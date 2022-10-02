@@ -28,19 +28,20 @@ public class EquityScreener {
   }
 
   private boolean testSymbol(String symbol) {
-    final var stockPrices = marketDataRepository.getPastStockPrices(symbol);
-    final var stockDividends = marketDataRepository.getPastStockDividends(symbol);
-
     var k = CAPM.compute(marketDataRepository, symbol);
 
-    // expected return
+    // growth rate
     final var returnOnEquity = marketDataRepository.getStockReturnOnEquity(symbol);
     final var dividendPayoutRatio = marketDataRepository.getStockDividendPayoutRatio(symbol);
     final Double growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
-    final var er = computeExpectedReturnsOnShare(stockPrices, stockDividends, growthRate);
+
+    // expected return
+    final var stockPrices = marketDataRepository.getPastStockPrices(symbol);
+    final var latestDividend = marketDataRepository.getLatestDividend(symbol);
+    final var er = computeExpectedReturnsOnShare(stockPrices, latestDividend, growthRate);
 
     // intrinsic value
-    final var v0 = computeIntrinsicValueOfShare(stockPrices, stockDividends, growthRate, k);
+    final var v0 = computeIntrinsicValueOfShare(stockPrices, latestDividend, growthRate, k);
 
     // market price
     final var m = stockPrices.entrySet().stream()
@@ -52,15 +53,13 @@ public class EquityScreener {
 
   private double computeIntrinsicValueOfShare(
     TreeMap<LocalDate, Double> stockPrices,
-    TreeMap<LocalDate, Double> stockDividends,
+    double latestDividend,
     Double growthRate,
     Double k
   ) {
+    // E(D0)
     // E(P0)
     final double latestPrice = stockPrices.entrySet().stream()
-      .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
-    // E(D0)
-    final double latestDividend = stockDividends.entrySet().stream()
       .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
     // E(P1)
     final var forecastedPrice = latestPrice * (1 + growthRate);
@@ -71,15 +70,12 @@ public class EquityScreener {
 
   private double computeExpectedReturnsOnShare(
     TreeMap<LocalDate, Double> stockPrices,
-    TreeMap<LocalDate, Double> stockDividends,
+    double latestDividend,
     Double growthRate
   ) {
+    // E(D0)
     // E(P0)
     final double latestPrice = stockPrices.entrySet().stream()
-      .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
-    // E(D0)
-    // todo: verify in which units the dividends are
-    final double latestDividend = stockDividends.entrySet().stream()
       .max(Map.Entry.comparingByKey()).orElseThrow().getValue();
     // E(P1)
     final var forecastedPrice = latestPrice * (1 + growthRate);
