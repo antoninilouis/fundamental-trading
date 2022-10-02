@@ -9,13 +9,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public abstract class MarketDataRepository {
 
-  public final static String INDEX_NAME = "GSPC";
+  public static final String INDEX_NAME = "GSPC";
+  private static final int MIN_DATA_POINTS = 750;
   private final TreeMap<LocalDate, Double> indexPrices;
   private final TreeMap<LocalDate, Double> indexReturns;
   private final TreeMap<LocalDate, Double> tbReturns;
@@ -23,7 +23,7 @@ public abstract class MarketDataRepository {
   private final Map<String, TreeMap<LocalDate, Double>> stockPrices;
   private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
   private final Map<String, TreeMap<LocalDate, Double>> stockReturns = new HashMap<>();
-  private final Map<String, TreeMap<LocalDate, Double>> stockDividends = new HashMap<>();
+  private final Map<String, TreeMap<LocalDate, Double>> stockDividends;
   private final Map<String, Double> stockReturnOnEquity = new HashMap<>();
   private final Map<String, Double> stockDividendPayoutRatio = new HashMap<>();
   private LocalDate tradeDate;
@@ -32,12 +32,13 @@ public abstract class MarketDataRepository {
     this.tradeDate = tradeDate;
     final var allSymbols = extractSymbols();
     this.stockPrices = getStockPrices(allSymbols, from, to);
-    this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
+    this.stockDividends = getStockDividends(allSymbols, from, to);
+    this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= MIN_DATA_POINTS).collect(Collectors.toSet());
     this.indexPrices = getIndexPrices(from, to);
     this.indexReturns = toReturnPercents(indexPrices);
-    this.tbReturns = extractTBillsReturns();
+    this.tbReturns = getTbReturns(from, to);
 
-    if (indexPrices.size() < 750) {
+    if (indexPrices.size() < MIN_DATA_POINTS) {
       throw new RuntimeException("Missing index data");
     }
 
@@ -47,7 +48,6 @@ public abstract class MarketDataRepository {
 
     this.symbols.forEach(symbol -> {
       this.stockReturns.put(symbol, toReturnPercents(this.stockPrices.get(symbol)));
-      this.stockDividends.put(symbol, extractDatedValues(symbol, ResourceTypes.DIVIDENDS, from, to));
       try {
         this.stockReturnOnEquity.put(symbol, extractSingleValue(symbol, ResourceTypes.ROES));
         this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
@@ -57,8 +57,6 @@ public abstract class MarketDataRepository {
       }
     });
   }
-
-  // Compute
 
   static TreeMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
     final var copy = getCopy(prices);
@@ -95,49 +93,7 @@ public abstract class MarketDataRepository {
     }
   }
 
-  protected static TreeMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type, Instant from, Instant to) {
-    return byBufferedReader(type.getPath() + symbol + ".csv", DupKeyOption.OVERWRITE).entrySet().stream()
-      .filter(e -> !e.getKey().isBefore(LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
-        || e.getKey().isAfter(LocalDate.ofInstant(to, ZoneId.of("America/New_York"))))
-      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
-  }
-
-  // Read
-
-  protected static TreeMap<LocalDate, Double> extractTBillsReturns() {
-    return byBufferedReader(
-      "daily-treasury-rates.csv",
-      DupKeyOption.OVERWRITE
-    );
-  }
-
-  private static TreeMap<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
-    TreeMap<LocalDate, Double> map = new TreeMap<>();
-    String line;
-    final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(filePath));
-    try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
-      while ((line = reader.readLine()) != null) {
-        String[] keyValuePair = line.split(",", 2);
-        if (keyValuePair.length > 1) {
-          var key = LocalDate.parse(keyValuePair[0]);
-          var value = Double.valueOf(keyValuePair[1]);
-          if (value.isNaN()) {
-            continue;
-          }
-          if (DupKeyOption.OVERWRITE == dupKeyOption) {
-            map.put(key, value);
-          } else if (DupKeyOption.DISCARD == dupKeyOption) {
-            map.putIfAbsent(key, value);
-          }
-        } else {
-          System.out.println("No Key:Value found in line, ignoring: " + line);
-        }
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return map;
-  }
+  // Compute
 
   private static InputStream getFileFromResourceAsStream(String fileName) {
     ClassLoader classLoader = Application.class.getClassLoader();
@@ -150,9 +106,15 @@ public abstract class MarketDataRepository {
     }
   }
 
-  abstract protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
 
-  abstract protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
+  protected abstract TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
+
+  protected abstract TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to);
+
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> allSymbols, Instant from, Instant to);
+
+  // Read
 
   private Set<String> extractSymbols() {
     final Set<String> symbols = new HashSet<>();
@@ -268,10 +230,6 @@ public abstract class MarketDataRepository {
 
   public void increment() {
     this.tradeDate = tradeDate.plusDays(1);
-  }
-
-  private enum DupKeyOption {
-    OVERWRITE, DISCARD
   }
 
   protected enum ResourceTypes {

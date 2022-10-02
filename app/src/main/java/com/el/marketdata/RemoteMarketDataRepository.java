@@ -23,4 +23,14 @@ public class RemoteMarketDataRepository extends MarketDataRepository {
     final FMPService fmpService = new FMPService();
     return fmpService.getIndexPrices(INDEX_NAME, from, to);
   }
+
+  @Override
+  protected TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
+    return null;
+  }
+
+  @Override
+  protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> allSymbols, Instant from, Instant to) {
+    return null;
+  }
 }

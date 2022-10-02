@@ -41,7 +41,7 @@ class OptimalRiskyPortfolioTest {
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
     );
-    runBacktest(marketDataRepository);
+    final var perf = runBacktest(marketDataRepository);
   }
 
   @Test
