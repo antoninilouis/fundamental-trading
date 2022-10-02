@@ -11,9 +11,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.TreeMap;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -42,10 +41,10 @@ public class FMPService {
       .url(BASE_URL + "/ratios/" + symbol + "?apikey=" + apikey)
       .method("GET", null)
       .build();
-    extracted(request);
+    extract(request);
   }
 
-  private JsonNode extracted(Request request) {
+  private JsonNode extract(Request request) {
     try (Response response = client.newCall(request).execute()) {
       return om.readTree(Objects.requireNonNull(response.body()).string());
     } catch (IOException e) {
@@ -58,7 +57,7 @@ public class FMPService {
       .url(BASE_URL + "/historical-price-full/%5EGSPC?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
       .method("GET", null)
       .build();
-    final var jsonNode = extracted(request);
+    final var jsonNode = extract(request);
     return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
       .collect(Collectors.toMap(
         n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
@@ -66,5 +65,25 @@ public class FMPService {
         (o1, o2) -> o1,
         TreeMap::new
       ));
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
+    return symbols.stream().collect(Collectors.toMap(
+      Function.identity(),
+      symbol -> {
+        final Request request = new Request.Builder()
+          .url(BASE_URL + "/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
+          .method("GET", null)
+          .build();
+        final var jsonNode = extract(request);
+        return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
+          .collect(Collectors.toMap(
+            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
+            n -> Double.valueOf(n.get("close").toString()),
+            (o1, o2) -> o1,
+            TreeMap::new
+          ));
+      }
+    ));
   }
 }

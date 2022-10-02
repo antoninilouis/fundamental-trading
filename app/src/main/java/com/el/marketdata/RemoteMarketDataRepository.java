@@ -14,8 +14,8 @@ public class RemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
-    final AlpacaService alpacaService = new AlpacaService();
-    return alpacaService.getMultiBars(symbols, from, to);
+    final FMPService fmpService = new FMPService();
+    return fmpService.getStockPrices(symbols, from, to);
   }
 
   @Override
