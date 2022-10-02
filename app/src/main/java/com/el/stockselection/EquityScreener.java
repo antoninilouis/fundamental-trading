@@ -3,7 +3,7 @@ package com.el.stockselection;
 import com.el.marketdata.MarketDataRepository;
 
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
+import java.util.TreeMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -47,8 +47,8 @@ public class EquityScreener {
     }
 
     private double computeIntrinsicValueOfShare(
-        LinkedHashMap<LocalDate, Double> stockPrices,
-        LinkedHashMap<LocalDate, Double> stockDividends,
+        TreeMap<LocalDate, Double> stockPrices,
+        TreeMap<LocalDate, Double> stockDividends,
         Double growthRate,
         Double k
     ) {
@@ -66,8 +66,8 @@ public class EquityScreener {
     }
 
     private double computeExpectedReturnsOnShare(
-        LinkedHashMap<LocalDate, Double> stockPrices,
-        LinkedHashMap<LocalDate, Double> stockDividends,
+        TreeMap<LocalDate, Double> stockPrices,
+        TreeMap<LocalDate, Double> stockDividends,
         Double growthRate
     ) {
         // E(P0)

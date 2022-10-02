@@ -1,8 +1,8 @@
 package com.el;
 
-import com.el.marketdata.RemoteMarketDataRepository;
 import com.el.marketdata.LocalMarketDataRepository;
 import com.el.marketdata.MarketDataRepository;
+import com.el.marketdata.RemoteMarketDataRepository;
 import com.el.stockselection.EquityScreener;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -39,7 +39,7 @@ class OptimalRiskyPortfolioTest {
     {
         final var symbolStatisticsRepository = new RemoteMarketDataRepository(
             TRADE_DATE,
-            ZonedDateTime.of(LocalDate.of(2012, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
+            ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
             ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
         );
         computePortfolioValue(symbolStatisticsRepository);

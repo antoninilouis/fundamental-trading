@@ -4,7 +4,7 @@ import com.el.marketdata.MarketDataRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.LinkedHashMap;
+import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,8 +15,8 @@ public class MarketDataRepositoryTest {
     {
         final var tradeDate = LocalDate.of(2022,5, 27);
         final var es = new LocalMarketDataRepository(tradeDate, null, null);
-        final LinkedHashMap<LocalDate, Double> indexPrices = es.getIndexPrices();
-        final LinkedHashMap<LocalDate, Double> tBillsReturns = es.getPastTbReturns();
+        final TreeMap<LocalDate, Double> indexPrices = es.getIndexPrices();
+        final TreeMap<LocalDate, Double> tBillsReturns = es.getPastTbReturns();
 
         assertEquals(2685, indexPrices.size());
         assertEquals(1.06, tBillsReturns.get(LocalDate.of(2022,5, 26)), 1e-3);
@@ -26,7 +26,7 @@ public class MarketDataRepositoryTest {
     @Test
     public void testConversionToReturnPercents()
     {
-        final var stockPrices = new LinkedHashMap<LocalDate, Double>();
+        final var stockPrices = new TreeMap<LocalDate, Double>();
         stockPrices.put(LocalDate.parse("2021-05-03"), 77.680000);
         stockPrices.put(LocalDate.parse("2021-05-04"), 76.800003);
         stockPrices.put(LocalDate.parse("2021-05-05"), 76.930000);
@@ -38,7 +38,7 @@ public class MarketDataRepositoryTest {
         stockPrices.put(LocalDate.parse("2021-05-13"), 77.769997);
         stockPrices.put(LocalDate.parse("2021-05-17"), 77.970001);
 
-        final var stockReturns = new LinkedHashMap<>();
+        final var stockReturns = new TreeMap<>();
         stockReturns.put(LocalDate.parse("2021-05-03"), 0.0);
         stockReturns.put(LocalDate.parse("2021-05-04"), -0.011328488671472736);
         stockReturns.put(LocalDate.parse("2021-05-05"), 0.0016926692047134484);

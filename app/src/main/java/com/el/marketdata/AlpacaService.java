@@ -10,9 +10,9 @@ import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -24,7 +24,7 @@ public class AlpacaService {
         alpacaAPI = new AlpacaAPI();
     }
 
-    public Map<String, LinkedHashMap<LocalDate, Double>> getMultiBars(
+    public Map<String, TreeMap<LocalDate, Double>> getMultiBars(
         Set<String> symbols,
         Instant from,
         Instant to
@@ -32,7 +32,7 @@ public class AlpacaService {
         try {
             final var multiBars = symbols.stream().collect(Collectors.toMap(
                 Function.identity(),
-                symbol -> new LinkedHashMap<LocalDate, Double>()
+                symbol -> new TreeMap<LocalDate, Double>()
             ));
             MultiStockBarsResponse nextPage = null;
             String nextPageToken = null;
@@ -49,12 +49,12 @@ public class AlpacaService {
                     null
                 );
                 nextPage.getBars().forEach((key, value) -> {
-                    final LinkedHashMap<LocalDate, Double> map = value.stream()
+                    final TreeMap<LocalDate, Double> map = value.stream()
                         .collect(Collectors.toMap(
                             bar -> bar.getTimestamp().toLocalDate(),
                             StockBar::getClose,
                             (o1, o2) -> o1,
-                            LinkedHashMap::new
+                            TreeMap::new
                         ));
                     multiBars.get(key).putAll(map);
                 });

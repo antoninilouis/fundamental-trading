@@ -11,7 +11,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.LinkedHashMap;
+import java.util.TreeMap;
 import java.util.Objects;
 import java.util.Properties;
 import java.util.stream.Collectors;
@@ -53,7 +53,7 @@ public class FMPService {
         }
     }
 
-    public LinkedHashMap<LocalDate, Double> getIndexPrices(String indexName, Instant from, Instant to) {
+    public TreeMap<LocalDate, Double> getIndexPrices(String indexName, Instant from, Instant to) {
         final Request request = new Request.Builder()
             .url(BASE_URL + "/historical-price-full/%5EGSPC?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
             .method("GET", null)
@@ -64,7 +64,7 @@ public class FMPService {
                 n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
                 n -> Double.valueOf(n.get("close").toString()),
                 (o1, o2) -> o1,
-                LinkedHashMap::new
+                TreeMap::new
             ));
     }
 }

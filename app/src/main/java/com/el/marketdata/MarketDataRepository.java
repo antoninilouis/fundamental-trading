@@ -16,14 +16,14 @@ public abstract class MarketDataRepository {
 
     private LocalDate tradeDate;
 
-    private final LinkedHashMap<LocalDate, Double> indexPrices;
-    private final LinkedHashMap<LocalDate, Double> indexReturns;
-    private final LinkedHashMap<LocalDate, Double> tbReturns;
+    private final TreeMap<LocalDate, Double> indexPrices;
+    private final TreeMap<LocalDate, Double> indexReturns;
+    private final TreeMap<LocalDate, Double> tbReturns;
     private final Set<String> symbols;
-    private final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices;
+    private final Map<String, TreeMap<LocalDate, Double>> stockPrices;
     private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
-    private final Map<String, LinkedHashMap<LocalDate, Double>> stockReturns = new HashMap<>();
-    private final Map<String, LinkedHashMap<LocalDate, Double>> stockDividends = new HashMap<>();
+    private final Map<String, TreeMap<LocalDate, Double>> stockReturns = new HashMap<>();
+    private final Map<String, TreeMap<LocalDate, Double>> stockDividends = new HashMap<>();
     private final Map<String, Double> stockReturnOnEquity = new HashMap<>();
     private final Map<String, Double> stockDividendPayoutRatio = new HashMap<>();
 
@@ -61,10 +61,10 @@ public abstract class MarketDataRepository {
 
     // Compute
 
-    abstract protected Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
-    abstract protected LinkedHashMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
+    abstract protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
+    abstract protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
 
-    static LinkedHashMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
+    static TreeMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
         final var copy = getCopy(prices);
         final var iterator = copy.entrySet().iterator();
         final var firstEntry = iterator.next();
@@ -80,13 +80,13 @@ public abstract class MarketDataRepository {
         return copy;
     }
 
-    private static LinkedHashMap<LocalDate, Double> getCopy(Map<LocalDate, Double> prices) {
+    private static TreeMap<LocalDate, Double> getCopy(Map<LocalDate, Double> prices) {
         return prices.entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
                 Map.Entry::getValue,
                 (o1, o2) -> o1,
-                LinkedHashMap::new
+                TreeMap::new
             ));
     }
 
@@ -116,22 +116,22 @@ public abstract class MarketDataRepository {
         }
     }
 
-    protected static LinkedHashMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
+    protected static TreeMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type) {
         return byBufferedReader(
             type.getPath() + symbol + ".csv",
             DupKeyOption.OVERWRITE
         );
     }
 
-    protected static LinkedHashMap<LocalDate, Double> extractTBillsReturns() {
+    protected static TreeMap<LocalDate, Double> extractTBillsReturns() {
         return byBufferedReader(
             "daily-treasury-rates.csv",
             DupKeyOption.OVERWRITE
         );
     }
 
-    private static LinkedHashMap<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
-        LinkedHashMap<LocalDate, Double> map = new LinkedHashMap<>();
+    private static TreeMap<LocalDate, Double> byBufferedReader(String filePath, DupKeyOption dupKeyOption) {
+        TreeMap<LocalDate, Double> map = new TreeMap<>();
         String line;
         final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(filePath));
         try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
@@ -194,30 +194,30 @@ public abstract class MarketDataRepository {
         return symbols;
     }
 
-    public LinkedHashMap<LocalDate, Double> getIndexPrices() {
+    public TreeMap<LocalDate, Double> getIndexPrices() {
         return indexPrices;
     }
 
-    public LinkedHashMap<LocalDate, Double> getPastStockPrices(String symbol) {
+    public TreeMap<LocalDate, Double> getPastStockPrices(String symbol) {
         return stockPrices.get(symbol).entrySet().stream()
             .filter(e -> e.getKey().isBefore(tradeDate))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
-    public LinkedHashMap<LocalDate, Double> getPastStockDividends(String symbol) {
+    public TreeMap<LocalDate, Double> getPastStockDividends(String symbol) {
         final var stockDividends = this.stockDividends.get(symbol).entrySet().stream()
             .filter(e -> e.getKey().isBefore(tradeDate))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
         if (stockDividends.isEmpty()) {
             stockDividends.put(tradeDate.minusDays(1), 0.0);
         }
         return stockDividends;
     }
 
-    public LinkedHashMap<LocalDate, Double> getPastTbReturns() {
+    public TreeMap<LocalDate, Double> getPastTbReturns() {
         return tbReturns.entrySet().stream()
             .filter(e -> e.getKey().isBefore(tradeDate))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
     public Double getStockReturnOnEquity(String symbol) {
@@ -228,31 +228,31 @@ public abstract class MarketDataRepository {
         return stockDividendPayoutRatio.get(symbol);
     }
 
-    public LinkedHashMap<LocalDate, Double> getPastIndexReturns() {
+    public TreeMap<LocalDate, Double> getPastIndexReturns() {
         return indexReturns.entrySet().stream()
             .filter(e -> e.getKey().isBefore(tradeDate))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
-    public LinkedHashMap<LocalDate, Double> getNewIndexReturns() {
+    public TreeMap<LocalDate, Double> getNewIndexReturns() {
         return indexReturns.entrySet().stream()
             .filter(e -> e.getKey().isAfter(tradeDate.minusDays(1)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
-    public LinkedHashMap<LocalDate, Double> getPastStockReturns(String symbol) {
+    public TreeMap<LocalDate, Double> getPastStockReturns(String symbol) {
         return stockReturns.get(symbol).entrySet().stream()
             .filter(e -> e.getKey().isBefore(tradeDate))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
-    public LinkedHashMap<LocalDate, Double> getNewStockReturns(String symbol) {
+    public TreeMap<LocalDate, Double> getNewStockReturns(String symbol) {
         return stockReturns.get(symbol).entrySet().stream()
             .filter(e -> e.getKey().isAfter(tradeDate.minusDays(1)))
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, LinkedHashMap::new));
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
     }
 
-    public Map<String, LinkedHashMap<LocalDate, Double>> getNewStockReturns(Set<String> symbols) {
+    public Map<String, TreeMap<LocalDate, Double>> getNewStockReturns(Set<String> symbols) {
         return stockReturns.entrySet().stream()
             .filter(entry -> symbols.contains(entry.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
