@@ -53,3 +53,8 @@ Logistics
 ## To consider later
 1. Preferred frequency and period of modelling
 2. Preferred frequency of trading
+
+--
+
+1. Make backtest with data from FMP
+2. Make backtest on market IEX

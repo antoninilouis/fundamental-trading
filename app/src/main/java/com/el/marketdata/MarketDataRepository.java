@@ -34,7 +34,7 @@ public abstract class MarketDataRepository {
         final var allSymbols = extractSymbols();
         this.stockPrices = getStockPrices(allSymbols, from, to);
         this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= 750).collect(Collectors.toSet());
-        this.indexPrices = extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
+        this.indexPrices = getIndexPrices(from, to);
         this.indexReturns = toReturnPercents(indexPrices);
         this.tbReturns = extractTBillsReturns();
 
@@ -61,7 +61,8 @@ public abstract class MarketDataRepository {
 
     // Compute
 
-    abstract Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
+    abstract protected Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
+    abstract protected LinkedHashMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
 
     static LinkedHashMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
         final var copy = getCopy(prices);

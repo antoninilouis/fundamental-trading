@@ -1,6 +1,6 @@
 package com.el;
 
-import com.el.marketdata.AlpacaMarketDataRepository;
+import com.el.marketdata.RemoteMarketDataRepository;
 import com.el.marketdata.LocalMarketDataRepository;
 import com.el.marketdata.MarketDataRepository;
 import com.el.stockselection.EquityScreener;
@@ -37,9 +37,9 @@ class OptimalRiskyPortfolioTest {
     @Disabled
     public void tryAlpacaDataAPI()
     {
-        final var symbolStatisticsRepository = new AlpacaMarketDataRepository(
+        final var symbolStatisticsRepository = new RemoteMarketDataRepository(
             TRADE_DATE,
-            ZonedDateTime.of(LocalDate.of(2016, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
+            ZonedDateTime.of(LocalDate.of(2012, 1, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
             ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
         );
         computePortfolioValue(symbolStatisticsRepository);

@@ -14,9 +14,14 @@ public class LocalMarketDataRepository extends MarketDataRepository {
     }
 
     @Override
-    Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
+    protected Map<String, LinkedHashMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
         final Map<String, LinkedHashMap<LocalDate, Double>> stockPrices = new HashMap<>();
         symbols.forEach(symbol -> stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES)));
         return stockPrices;
+    }
+
+    @Override
+    protected LinkedHashMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
+        return extractDatedValues(INDEX_NAME, ResourceTypes.PRICES);
     }
 }
