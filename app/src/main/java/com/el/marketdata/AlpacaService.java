@@ -17,52 +17,52 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class AlpacaService {
-    
-    private final AlpacaAPI alpacaAPI;
 
-    public AlpacaService() {
-        alpacaAPI = new AlpacaAPI();
-    }
+  private final AlpacaAPI alpacaAPI;
 
-    public Map<String, TreeMap<LocalDate, Double>> getMultiBars(
-        Set<String> symbols,
-        Instant from,
-        Instant to
-    ) {
-        try {
-            final var multiBars = symbols.stream().collect(Collectors.toMap(
-                Function.identity(),
-                symbol -> new TreeMap<LocalDate, Double>()
+  public AlpacaService() {
+    alpacaAPI = new AlpacaAPI();
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getMultiBars(
+    Set<String> symbols,
+    Instant from,
+    Instant to
+  ) {
+    try {
+      final var multiBars = symbols.stream().collect(Collectors.toMap(
+        Function.identity(),
+        symbol -> new TreeMap<LocalDate, Double>()
+      ));
+      MultiStockBarsResponse nextPage = null;
+      String nextPageToken = null;
+      while (nextPage == null || nextPageToken != null) {
+        nextPage = alpacaAPI.stockMarketData().getBars(
+          symbols,
+          from.atZone(ZoneId.of("America/New_York")),
+          to.atZone(ZoneId.of("America/New_York")),
+          null,
+          nextPageToken,
+          1,
+          BarTimePeriod.DAY,
+          BarAdjustment.SPLIT,
+          null
+        );
+        nextPage.getBars().forEach((key, value) -> {
+          final TreeMap<LocalDate, Double> map = value.stream()
+            .collect(Collectors.toMap(
+              bar -> bar.getTimestamp().toLocalDate(),
+              StockBar::getClose,
+              (o1, o2) -> o1,
+              TreeMap::new
             ));
-            MultiStockBarsResponse nextPage = null;
-            String nextPageToken = null;
-            while (nextPage == null || nextPageToken != null) {
-                nextPage = alpacaAPI.stockMarketData().getBars(
-                    symbols,
-                    from.atZone(ZoneId.of("America/New_York")),
-                    to.atZone(ZoneId.of("America/New_York")),
-                    null,
-                    nextPageToken,
-                    1,
-                    BarTimePeriod.DAY,
-                    BarAdjustment.SPLIT,
-                    null
-                );
-                nextPage.getBars().forEach((key, value) -> {
-                    final TreeMap<LocalDate, Double> map = value.stream()
-                        .collect(Collectors.toMap(
-                            bar -> bar.getTimestamp().toLocalDate(),
-                            StockBar::getClose,
-                            (o1, o2) -> o1,
-                            TreeMap::new
-                        ));
-                    multiBars.get(key).putAll(map);
-                });
-                nextPageToken = nextPage.getNextPageToken();
-            }
-            return multiBars;
-        } catch (AlpacaClientException e) {
-            throw new RuntimeException(e);
-        }
+          multiBars.get(key).putAll(map);
+        });
+        nextPageToken = nextPage.getNextPageToken();
+      }
+      return multiBars;
+    } catch (AlpacaClientException e) {
+      throw new RuntimeException(e);
     }
+  }
 }

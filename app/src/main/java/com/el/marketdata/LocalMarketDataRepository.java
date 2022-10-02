@@ -9,19 +9,19 @@ import java.util.TreeMap;
 
 public class LocalMarketDataRepository extends MarketDataRepository {
 
-    public LocalMarketDataRepository(LocalDate tradeDate, final Instant from, final Instant to) {
-        super(tradeDate, from, to);
-    }
+  public LocalMarketDataRepository(LocalDate tradeDate, final Instant from, final Instant to) {
+    super(tradeDate, from, to);
+  }
 
-    @Override
-    protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
-        final Map<String, TreeMap<LocalDate, Double>> stockPrices = new HashMap<>();
-        symbols.forEach(symbol -> stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES, from, to)));
-        return stockPrices;
-    }
+  @Override
+  protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
+    final Map<String, TreeMap<LocalDate, Double>> stockPrices = new HashMap<>();
+    symbols.forEach(symbol -> stockPrices.put(symbol, extractDatedValues(symbol, ResourceTypes.PRICES, from, to)));
+    return stockPrices;
+  }
 
-    @Override
-    protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
-        return extractDatedValues(INDEX_NAME, ResourceTypes.PRICES, from, to);
-    }
+  @Override
+  protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
+    return extractDatedValues(INDEX_NAME, ResourceTypes.PRICES, from, to);
+  }
 }
