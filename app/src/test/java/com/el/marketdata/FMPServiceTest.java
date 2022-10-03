@@ -8,11 +8,6 @@ import java.time.temporal.ChronoUnit;
 class FMPServiceTest {
 
   @Test
-  void run() {
-    new FMPService().getFinancialRatios("AAPL");
-  }
-
-  @Test
   void getIndexPrice() {
     var res = new FMPService().getIndexPrices("GSPC",
       Instant.now().minus(4, ChronoUnit.DAYS),

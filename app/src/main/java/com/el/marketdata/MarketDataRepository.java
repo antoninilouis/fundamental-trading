@@ -39,7 +39,7 @@ public abstract class MarketDataRepository {
     this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= MIN_DATA_POINTS).collect(Collectors.toSet());
 
     this.stockReturns = getStockReturns(stockPrices);
-    this.stockDividends = getStockDividends(allSymbols, from, to);
+    this.stockDividends = getStockDividends(this.symbols, from, to);
     this.indexPrices = getIndexPrices(from, to);
     this.indexReturns = toReturnPercents(indexPrices);
     this.tbReturns = getTbReturns(from, to);

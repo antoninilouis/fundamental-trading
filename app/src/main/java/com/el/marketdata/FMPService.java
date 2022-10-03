@@ -36,14 +36,6 @@ public class FMPService {
     }
   }
 
-  public void getFinancialRatios(final String symbol) {
-    final Request request = new Request.Builder()
-      .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey)
-      .method("GET", null)
-      .build();
-    extract(request);
-  }
-
   private JsonNode extract(Request request) {
     try (Response response = client.newCall(request).execute()) {
       return om.readTree(Objects.requireNonNull(response.body()).string());
