@@ -16,24 +16,29 @@ public abstract class MarketDataRepository {
 
   public static final String INDEX_NAME = "GSPC";
   private static final int MIN_DATA_POINTS = 750;
-  private LocalDate tradeDate;
-  private final Set<String> symbols;
-  private final TreeMap<LocalDate, Double> indexPrices;
-  private final TreeMap<LocalDate, Double> indexReturns;
-  private final TreeMap<LocalDate, Double> tbReturns;
-  private final Map<String, TreeMap<LocalDate, Double>> stockPrices;
-  private final Map<String, TreeMap<LocalDate, Double>> stockReturns;
-  private final Map<String, TreeMap<LocalDate, Double>> stockDividends;
-  private final Map<String, TreeMap<LocalDate, Double>> stockReturnOnEquity;
-  private final Map<String, TreeMap<LocalDate, Double>> stockDividendPayoutRatio;
+
   private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
 
-  public MarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
+  private LocalDate tradeDate;
+  private Set<String> symbols;
+  private TreeMap<LocalDate, Double> indexPrices;
+  private TreeMap<LocalDate, Double> indexReturns;
+  private TreeMap<LocalDate, Double> tbReturns;
+  private Map<String, TreeMap<LocalDate, Double>> stockPrices;
+  private Map<String, TreeMap<LocalDate, Double>> stockReturns;
+  private Map<String, TreeMap<LocalDate, Double>> stockDividends;
+  private Map<String, TreeMap<LocalDate, Double>> stockReturnOnEquity;
+  private Map<String, TreeMap<LocalDate, Double>> stockDividendPayoutRatio;
+
+  public MarketDataRepository(final LocalDate tradeDate) {
+    this.tradeDate = tradeDate;
+  }
+
+  public void initialize(final Instant from, final Instant to) {
     if (from.isAfter(to)) {
       throw new IllegalArgumentException("Start date is after end date");
     }
 
-    this.tradeDate = tradeDate;
     final var allSymbols = extractSymbols();
     this.stockPrices = getStockPrices(allSymbols, from, to);
     this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= MIN_DATA_POINTS).collect(Collectors.toSet());
