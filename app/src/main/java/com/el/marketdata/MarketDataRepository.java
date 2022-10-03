@@ -16,17 +16,17 @@ public abstract class MarketDataRepository {
 
   public static final String INDEX_NAME = "GSPC";
   private static final int MIN_DATA_POINTS = 750;
+  private LocalDate tradeDate;
+  private final Set<String> symbols;
   private final TreeMap<LocalDate, Double> indexPrices;
   private final TreeMap<LocalDate, Double> indexReturns;
   private final TreeMap<LocalDate, Double> tbReturns;
-  private final Set<String> symbols;
   private final Map<String, TreeMap<LocalDate, Double>> stockPrices;
-  private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
   private final Map<String, TreeMap<LocalDate, Double>> stockReturns;
   private final Map<String, TreeMap<LocalDate, Double>> stockDividends;
   private final Map<String, TreeMap<LocalDate, Double>> stockReturnOnEquity;
-  private final Map<String, Double> stockDividendPayoutRatio = new HashMap<>();
-  private LocalDate tradeDate;
+  private final Map<String, TreeMap<LocalDate, Double>> stockDividendPayoutRatio;
+  private final Map<String, RegressionResults> stockRegressionResults = new HashMap<>();
 
   public MarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
     if (from.isAfter(to)) {
@@ -43,7 +43,8 @@ public abstract class MarketDataRepository {
     this.indexPrices = getIndexPrices(from, to);
     this.indexReturns = toReturnPercents(indexPrices);
     this.tbReturns = getTbReturns(from, to);
-    this.stockReturnOnEquity = getLatestStockReturnOnEquity(this.symbols, from, to);
+    this.stockReturnOnEquity = getStockReturnOnEquity(this.symbols, from, to);
+    this.stockDividendPayoutRatio = getStockDividendPayoutRatio(this.symbols, from, to);
 
     if (indexPrices.size() < MIN_DATA_POINTS) {
       throw new RuntimeException("Missing index data");
@@ -53,15 +54,20 @@ public abstract class MarketDataRepository {
       throw new RuntimeException("No T-bill returns");
     }
 
-    this.symbols.forEach(symbol -> {
-      try {
-        this.stockDividendPayoutRatio.put(symbol, extractSingleValue(symbol, ResourceTypes.PAYOUT_RATIOS));
-        this.computeStockRegressionResult(symbol);
-      } catch (IOException e) {
-        throw new RuntimeException(e);
-      }
-    });
+    this.symbols.forEach(this::computeStockRegressionResult);
   }
+
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
+
+  protected abstract TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
+
+  protected abstract TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to);
+
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to);
+
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to);
+
+  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to);
 
   private Map<String, TreeMap<LocalDate, Double>> getStockReturns(Map<String, TreeMap<LocalDate, Double>> stockPrices) {
     final var stockReturns = new HashMap<String, TreeMap<LocalDate, Double>>();
@@ -97,17 +103,6 @@ public abstract class MarketDataRepository {
       ));
   }
 
-  protected static Double extractSingleValue(String symbol, final ResourceTypes type) throws IOException {
-    final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(type.getPath() + symbol));
-    try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
-      final var line = reader.readLine();
-      // todo: verify where NaN single values will be used
-      return line != null ? Double.parseDouble(line) : Double.NaN;
-    }
-  }
-
-  // Compute
-
   private static InputStream getFileFromResourceAsStream(String fileName) {
     ClassLoader classLoader = Application.class.getClassLoader();
     InputStream inputStream = classLoader.getResourceAsStream(fileName);
@@ -118,18 +113,6 @@ public abstract class MarketDataRepository {
       return inputStream;
     }
   }
-
-  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to);
-
-  protected abstract TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to);
-
-  protected abstract TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to);
-
-  protected abstract Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to);
-
-  protected abstract Map<String, TreeMap<LocalDate, Double>> getLatestStockReturnOnEquity(Set<String> symbols, Instant from, Instant to);
-
-  // Read
 
   private Set<String> extractSymbols() {
     final Set<String> symbols = new HashSet<>();
@@ -145,6 +128,26 @@ public abstract class MarketDataRepository {
     }
     return symbols;
   }
+
+  public void computeStockRegressionResult(String symbol) {
+    final var reg = new SimpleRegression();
+    final var indexReturns = getPastIndexReturns();
+    final var stockReturns = getPastStockReturns(symbol);
+    for (var entry : stockReturns.entrySet()) {
+      if (!indexReturns.containsKey(entry.getKey())) {
+        throw new RuntimeException("Missing or extraneous datapoints");
+      }
+      reg.addData(entry.getValue(), indexReturns.get(entry.getKey()));
+    }
+    stockRegressionResults.put(symbol, new RegressionResults(
+      reg.getSlope(),
+      reg.getIntercept(),
+      reg.getSumSquaredErrors(),
+      reg.getMeanSquareError()
+    ));
+  }
+
+  // Getters
 
   public Set<String> getSymbols() {
     return symbols;
@@ -190,8 +193,8 @@ public abstract class MarketDataRepository {
     return stockReturnOnEquity.get(symbol).floorEntry(tradeDate).getValue();
   }
 
-  public Double getStockDividendPayoutRatio(String symbol) {
-    return stockDividendPayoutRatio.get(symbol);
+  public Double getLatestStockDividendPayoutRatio(String symbol) {
+    return stockDividendPayoutRatio.get(symbol).floorEntry(tradeDate).getValue();
   }
 
   public TreeMap<LocalDate, Double> getPastIndexReturns() {
@@ -224,24 +227,6 @@ public abstract class MarketDataRepository {
       .collect(Collectors.toMap(Map.Entry::getKey, e -> getNewStockReturns(e.getKey())));
   }
 
-  public void computeStockRegressionResult(String symbol) {
-    final var reg = new SimpleRegression();
-    final var indexReturns = getPastIndexReturns();
-    final var stockReturns = getPastStockReturns(symbol);
-    for (var entry : stockReturns.entrySet()) {
-      if (!indexReturns.containsKey(entry.getKey())) {
-        throw new RuntimeException("Missing or extraneous datapoints");
-      }
-      reg.addData(entry.getValue(), indexReturns.get(entry.getKey()));
-    }
-    stockRegressionResults.put(symbol, new RegressionResults(
-      reg.getSlope(),
-      reg.getIntercept(),
-      reg.getSumSquaredErrors(),
-      reg.getMeanSquareError()
-    ));
-  }
-
   public RegressionResults getStockRegressionResults(String symbol) {
     if (!stockRegressionResults.containsKey(symbol)) {
       throw new RuntimeException("No regression results for " + symbol);
@@ -255,22 +240,5 @@ public abstract class MarketDataRepository {
 
   public void increment() {
     this.tradeDate = tradeDate.plusDays(1);
-  }
-
-  protected enum ResourceTypes {
-    DIVIDENDS("dividends/"),
-    PAYOUT_RATIOS("payoutRatios/"),
-    PRICES("prices/"),
-    ROES("ROEs/");
-
-    private final String prefix;
-
-    ResourceTypes(final String prefix) {
-      this.prefix = prefix;
-    }
-
-    public String getPath() {
-      return prefix;
-    }
   }
 }

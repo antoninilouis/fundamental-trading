@@ -51,7 +51,7 @@ public class LocalMarketDataRepository extends MarketDataRepository {
   }
 
   @Override
-  protected Map<String, TreeMap<LocalDate, Double>> getLatestStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
+  protected Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
     final var stockReturnOnEquity = new HashMap<String, TreeMap<LocalDate, Double>>();
     symbols.forEach(symbol -> {
       try {
@@ -64,6 +64,31 @@ public class LocalMarketDataRepository extends MarketDataRepository {
       }
     });
     return stockReturnOnEquity;
+  }
+
+  @Override
+  protected Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to) {
+    final var stockDividendPayoutRatio = new HashMap<String, TreeMap<LocalDate, Double>>();
+    symbols.forEach(symbol -> {
+      try {
+        final var tm = new TreeMap<LocalDate, Double>();
+        // Hack date of extracted single value to 'from', so value is always available in calculations
+        tm.put(LocalDate.ofInstant(from, ZoneId.of("America/New_York")), extractSingleValue(symbol, ResourceTypes.ROES));
+        stockDividendPayoutRatio.put(symbol, tm);
+      } catch (IOException e) {
+        throw new RuntimeException(e);
+      }
+    });
+    return stockDividendPayoutRatio;
+  }
+
+  protected static Double extractSingleValue(String symbol, final ResourceTypes type) throws IOException {
+    final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(type.getPath() + symbol));
+    try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+      final var line = reader.readLine();
+      // todo: verify where NaN single values will be used
+      return line != null ? Double.parseDouble(line) : Double.NaN;
+    }
   }
 
   protected static TreeMap<LocalDate, Double> extractDatedValues(final String symbol, final ResourceTypes type, Instant from, Instant to) {
@@ -114,5 +139,22 @@ public class LocalMarketDataRepository extends MarketDataRepository {
 
   private enum DupKeyOption {
     OVERWRITE, DISCARD
+  }
+
+  protected enum ResourceTypes {
+    DIVIDENDS("dividends/"),
+    PAYOUT_RATIOS("payoutRatios/"),
+    PRICES("prices/"),
+    ROES("ROEs/");
+
+    private final String prefix;
+
+    ResourceTypes(final String prefix) {
+      this.prefix = prefix;
+    }
+
+    public String getPath() {
+      return prefix;
+    }
   }
 }

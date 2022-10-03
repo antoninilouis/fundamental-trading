@@ -32,7 +32,7 @@ public class EquityScreener {
 
     // growth rate
     final var returnOnEquity = marketDataRepository.getLatestStockReturnOnEquity(symbol);
-    final var dividendPayoutRatio = marketDataRepository.getStockDividendPayoutRatio(symbol);
+    final var dividendPayoutRatio = marketDataRepository.getLatestStockDividendPayoutRatio(symbol);
     final Double growthRate = computeGrowthRate(returnOnEquity, dividendPayoutRatio);
 
     // expected return

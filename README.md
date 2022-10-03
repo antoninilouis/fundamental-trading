@@ -4,6 +4,7 @@
 2. Nasdaq-100 backtest with remote data from FMP 
    1. TODO: Get fundamental data with FMPService
 3. IEX backtest (3k symbols) with remote data from FMP
+4. Add unit/integration tests!
 
 ### Model
 Optimal Risky Portfolio using a Single Index Model 
