@@ -24,3 +24,7 @@ hs_err_pid*
 
 #idea
 .idea/
+
+#derby
+derby.log
+fundamental-tradingDB
