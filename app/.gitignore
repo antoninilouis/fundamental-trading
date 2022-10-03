@@ -32,3 +32,4 @@ target/
 # Project
 alpaca.properties
 fmp.properties
+fundamental-tradingDB.properties
