@@ -1,5 +1,6 @@
 package com.el.stockselection;
 
+import com.el.financeutils.CAPM;
 import com.el.marketdata.MarketDataRepository;
 
 import java.time.LocalDate;

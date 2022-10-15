@@ -1,5 +1,6 @@
 package com.el;
 
+import com.el.marketdata.CacheRemoteMarketDataRepository;
 import com.el.marketdata.LocalMarketDataRepository;
 import com.el.marketdata.MarketDataRepository;
 import com.el.marketdata.RemoteMarketDataRepository;
@@ -48,6 +49,17 @@ class OptimalRiskyPortfolioTest {
   @Disabled
   public void backtestWithNasdaq100RemoteMarketData() {
     final var marketDataRepository = new RemoteMarketDataRepository(
+      TRADE_DATE,
+      ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
+      ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
+    );
+    final var perf = runBacktest(marketDataRepository);
+  }
+
+  @Test
+  @Disabled
+  public void backtestWithNasdaq100RemoteMarketDataAndCache() {
+    final var marketDataRepository = new CacheRemoteMarketDataRepository(
       TRADE_DATE,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()

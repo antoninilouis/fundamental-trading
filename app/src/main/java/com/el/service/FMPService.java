@@ -1,4 +1,4 @@
-package com.el.marketdata;
+package com.el.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,7 +23,7 @@ public class FMPService {
   private final OkHttpClient client;
   private final String apikey;
 
-  FMPService() {
+  public FMPService() {
     client = new OkHttpClient();
     try {
       final Properties appProps = new Properties();

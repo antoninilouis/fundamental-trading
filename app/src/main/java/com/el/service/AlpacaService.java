@@ -1,4 +1,4 @@
-package com.el.marketdata;
+package com.el.service;
 
 import net.jacobpeterson.alpaca.AlpacaAPI;
 import net.jacobpeterson.alpaca.model.endpoint.marketdata.common.historical.bar.enums.BarTimePeriod;

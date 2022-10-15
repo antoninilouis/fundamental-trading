@@ -1,7 +1,7 @@
 package com.el;
 
 import com.el.marketdata.MarketDataRepository;
-import com.el.stockselection.CAPM;
+import com.el.financeutils.CAPM;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
 import java.util.HashMap;

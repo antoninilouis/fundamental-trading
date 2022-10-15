@@ -1,4 +1,4 @@
-package com.el.stockselection;
+package com.el.financeutils;
 
 import com.el.marketdata.MarketDataRepository;
 
@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class CAPM {
 
-  static double compute(
+  public static double compute(
     final MarketDataRepository marketDataRepository,
     final String symbol
   ) {

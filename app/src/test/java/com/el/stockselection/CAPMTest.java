@@ -1,5 +1,6 @@
 package com.el.stockselection;
 
+import com.el.financeutils.CAPM;
 import com.el.marketdata.LocalMarketDataRepository;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
