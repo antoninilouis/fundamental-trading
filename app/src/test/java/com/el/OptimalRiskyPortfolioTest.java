@@ -4,6 +4,7 @@ import com.el.marketdata.CacheRemoteMarketDataRepository;
 import com.el.marketdata.LocalMarketDataRepository;
 import com.el.marketdata.MarketDataRepository;
 import com.el.marketdata.RemoteMarketDataRepository;
+import com.el.service.CacheRemoteMarketDataService;
 import com.el.stockselection.EquityScreener;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -66,9 +67,15 @@ class OptimalRiskyPortfolioTest {
 
   @Test
   @Disabled
+  public void fillIndexCache() {
+    CacheRemoteMarketDataService.fillIndexPricesCache(CacheRemoteMarketDataRepository.INDEX_NAME);
+  }
+
+  @Test
+  @Disabled
   public void backtestWithNasdaq100RemoteMarketDataAndCache() {
     final var marketDataRepository = new CacheRemoteMarketDataRepository(
-      extractSymbols("symbols.txt"),
+      extractSymbols("symbols_small.txt"),
       TRADE_DATE,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
