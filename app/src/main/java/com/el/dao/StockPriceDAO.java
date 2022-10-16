@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 public interface StockPriceDAO {
@@ -26,6 +27,9 @@ public interface StockPriceDAO {
 
   @SqlBatch("insert into APP.STOCK_PRICES (SYMBOL, TIMESTAMP, PRICE) VALUES (:symbol, :prices.getKey, :prices.getValue)")
   int[] insertStockPrices(@Bind("symbol") String symbol, @BindMethods("prices") Collection<Map.Entry<LocalDate, Double>> prices);
+
+  @SqlBatch("insert into APP.INDEX_PRICES (INDEX, TIMESTAMP, PRICE) VALUES (:index, :prices.getKey, :prices.getValue)")
+  int[] insertIndexPrices(@Bind("index") String index, @BindMethods("prices") Set<Map.Entry<LocalDate, Double>> entrySet);
 
   class LocalDateMapper implements RowMapper<LocalDate> {
 

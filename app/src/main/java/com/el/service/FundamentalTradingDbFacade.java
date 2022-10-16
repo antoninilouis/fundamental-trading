@@ -49,8 +49,13 @@ public class FundamentalTradingDbFacade {
     }
   }
 
-  public boolean contains(String symbol) {
-    return jdbi.withHandle(handle -> !handle.select("select * from APP.STOCK_PRICES LIMIT 1").mapTo(String.class).findOnly().isEmpty());
+  public void insertIndexPrices(String index, TreeMap<LocalDate, Double> prices) {
+    try {
+      final int[] batchInserts = jdbi.withExtension(StockPriceDAO.class, dao -> dao.insertIndexPrices(index, prices.entrySet()));
+      logger.info("Inserted {} entries for index {}", Arrays.stream(batchInserts).sum(), index);
+    } catch (JdbiException e) {
+      throw new RuntimeException(e.getMessage());
+    }
   }
 
   public Map<String, TreeMap<LocalDate, Double>> getCachedStockPrices(Set<String> symbols, Instant from, Instant to) {
@@ -67,5 +72,16 @@ public class FundamentalTradingDbFacade {
             .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
       ))
       .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  public TreeMap<LocalDate, Double> getCachedIndexPrices(String index, Instant from, Instant to) {
+    return jdbi.withHandle(handle ->
+      handle.createQuery("select * from APP.INDEX_PRICES where INDEX = :index and TIMESTAMP between :from and :to")
+        .registerRowMapper(new StockPriceDAO.DoubleMapper())
+        .registerRowMapper(new StockPriceDAO.LocalDateMapper())
+        .bind("index", index)
+        .bind("from", Timestamp.from(from))
+        .bind("to", Timestamp.from(to))
+        .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}));
   }
 }
