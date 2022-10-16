@@ -1,12 +1,7 @@
 package com.el.marketdata;
 
-import com.el.Application;
 import org.apache.commons.math3.stat.regression.SimpleRegression;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.*;
@@ -30,7 +25,8 @@ public abstract class MarketDataRepository {
   private Map<String, TreeMap<LocalDate, Double>> stockReturnOnEquity;
   private Map<String, TreeMap<LocalDate, Double>> stockDividendPayoutRatio;
 
-  public MarketDataRepository(final LocalDate tradeDate) {
+  public MarketDataRepository(final Set<String> symbols, final LocalDate tradeDate) {
+    this.symbols = symbols;
     this.tradeDate = tradeDate;
   }
 
@@ -39,9 +35,8 @@ public abstract class MarketDataRepository {
       throw new IllegalArgumentException("Start date is after end date");
     }
 
-    final var allSymbols = extractSymbols();
-    this.stockPrices = getStockPrices(allSymbols, from, to);
-    this.symbols = allSymbols.stream().filter(s -> getPastStockPrices(s).size() >= MIN_DATA_POINTS).collect(Collectors.toSet());
+    this.stockPrices = getStockPrices(this.symbols, from, to);
+    this.symbols = this.symbols.stream().filter(s -> getPastStockPrices(s).size() >= MIN_DATA_POINTS).collect(Collectors.toSet());
 
     this.stockReturns = getStockReturns(stockPrices);
     this.stockDividends = getStockDividends(this.symbols, from, to);
@@ -106,32 +101,6 @@ public abstract class MarketDataRepository {
         (o1, o2) -> o1,
         TreeMap::new
       ));
-  }
-
-  private static InputStream getFileFromResourceAsStream(String fileName) {
-    ClassLoader classLoader = Application.class.getClassLoader();
-    InputStream inputStream = classLoader.getResourceAsStream(fileName);
-
-    if (inputStream == null) {
-      throw new IllegalArgumentException("file not found! " + fileName);
-    } else {
-      return inputStream;
-    }
-  }
-
-  private Set<String> extractSymbols() {
-    final Set<String> symbols = new HashSet<>();
-    final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream("symbols.txt"));
-    String line;
-
-    try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
-      while ((line = reader.readLine()) != null) {
-        symbols.add(line);
-      }
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-    return symbols;
   }
 
   public void computeStockRegressionResult(String symbol) {

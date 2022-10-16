@@ -12,8 +12,8 @@ public class RemoteMarketDataRepository extends MarketDataRepository {
 
   private final FMPService fmpService = new FMPService();
 
-  public RemoteMarketDataRepository(final LocalDate tradeDate, final Instant from, final Instant to) {
-    super(tradeDate);
+  public RemoteMarketDataRepository(final Set<String> symbols, final LocalDate tradeDate, final Instant from, final Instant to) {
+    super(symbols, tradeDate);
     this.initialize(from, to);
   }
 

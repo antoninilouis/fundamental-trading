@@ -7,10 +7,10 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * Reduce nb requests when live trading:
@@ -26,33 +26,15 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
   private static final Logger logger = LoggerFactory.getLogger(CacheRemoteMarketDataRepository.class);
   private static final FMPService fmpService = new FMPService();
   private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
-  private static final LocalDate MIN_DATE = LocalDate.of(2012, 1, 1);
-  private static final LocalDate MAX_DATE = LocalDate.of(2022, 9, 1);
-  private Boolean fillCache;
 
   public CacheRemoteMarketDataRepository(
+    final Set<String> symbols,
     final LocalDate tradeDate,
     final Instant from,
-    final Instant to,
-    final Boolean fillCache
+    final Instant to
   ) {
-    super(tradeDate);
-    this.fillCache = fillCache;
+    super(symbols, tradeDate);
     initialize(from, to);
-  }
-
-  public static void fillCache(Set<String> symbols) {
-    final var stockPrices = fmpService.getStockPrices(symbols,
-      MIN_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant(),
-      MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
-    stockPrices.forEach(fundamentalTradingDbFacade::insertStockPrices);
-  }
-
-  public static void fillIndexPricesCache(String index) {
-    final var indexPrices = fmpService.getIndexPrices(index,
-      MIN_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant(),
-      MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
-    fundamentalTradingDbFacade.insertIndexPrices(index, indexPrices);
   }
 
   /**
@@ -62,20 +44,17 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
    */
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
-    if (this.fillCache) {
-      fillCache(symbols);
-    }
     final var stockPrices = fundamentalTradingDbFacade.getCachedStockPrices(symbols, from, to);
-    symbols.removeIf(stockPrices::containsKey);
-    stockPrices.putAll(fmpService.getStockPrices(symbols, from, to));
+    stockPrices.putAll(fmpService.getStockPrices(
+      symbols.stream().filter(s -> !stockPrices.containsKey(s)).collect(Collectors.toSet()),
+      from,
+      to
+    ));
     return stockPrices;
   }
 
   @Override
   protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
-    if (this.fillCache) {
-      fillIndexPricesCache(INDEX_NAME);
-    }
     final var indexPrices = fundamentalTradingDbFacade.getCachedIndexPrices(INDEX_NAME, from, to);
     if (indexPrices.isEmpty()) {
       indexPrices.putAll(fmpService.getIndexPrices(INDEX_NAME, from, to));

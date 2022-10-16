@@ -10,12 +10,18 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.pow;
@@ -38,6 +44,7 @@ class OptimalRiskyPortfolioTest {
   @Disabled
   public void backtestWithLocalMarketData() {
     final var marketDataRepository = new LocalMarketDataRepository(
+      extractSymbols("symbols.txt"),
       TRADE_DATE,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
@@ -49,6 +56,7 @@ class OptimalRiskyPortfolioTest {
   @Disabled
   public void backtestWithNasdaq100RemoteMarketData() {
     final var marketDataRepository = new RemoteMarketDataRepository(
+      extractSymbols("symbols.txt"),
       TRADE_DATE,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
@@ -60,10 +68,10 @@ class OptimalRiskyPortfolioTest {
   @Disabled
   public void backtestWithNasdaq100RemoteMarketDataAndCache() {
     final var marketDataRepository = new CacheRemoteMarketDataRepository(
+      extractSymbols("symbols.txt"),
       TRADE_DATE,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
-      ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
-      false
+      ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
     );
     final var perf = runBacktest(marketDataRepository);
   }
@@ -124,5 +132,31 @@ class OptimalRiskyPortfolioTest {
       marketDataRepository.increment();
     }
     return computePerformance(portfolioValue, totalDays / 365.0);
+  }
+
+  private static Set<String> extractSymbols(final String fileName) {
+    final Set<String> symbols = new HashSet<>();
+    final var inputStreamReader = new InputStreamReader(getFileFromResourceAsStream(fileName));
+    String line;
+
+    try (BufferedReader reader = new BufferedReader(inputStreamReader)) {
+      while ((line = reader.readLine()) != null) {
+        symbols.add(line);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return symbols;
+  }
+
+  private static InputStream getFileFromResourceAsStream(String fileName) {
+    ClassLoader classLoader = Application.class.getClassLoader();
+    InputStream inputStream = classLoader.getResourceAsStream(fileName);
+
+    if (inputStream == null) {
+      throw new IllegalArgumentException("file not found! " + fileName);
+    } else {
+      return inputStream;
+    }
   }
 }

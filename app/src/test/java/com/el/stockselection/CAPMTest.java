@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -17,6 +18,7 @@ public class CAPMTest {
   public void calculateMeanMarketReturns() {
     final var tradeDate = LocalDate.of(2022, 9, 1);
     final var es = new LocalMarketDataRepository(
+      Set.of("AAPL"),
       tradeDate,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()

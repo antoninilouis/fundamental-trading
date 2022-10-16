@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 
 public class LocalMarketDataRepository extends MarketDataRepository {
 
-  public LocalMarketDataRepository(LocalDate tradeDate, final Instant from, final Instant to) {
-    super(tradeDate);
+  public LocalMarketDataRepository(final Set<String> symbols, LocalDate tradeDate, final Instant from, final Instant to) {
+    super(symbols, tradeDate);
     this.initialize(from, to);
   }
 
