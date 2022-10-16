@@ -55,6 +55,7 @@ public class FMPService {
       .url(BASE_URL + "/v3/historical-price-full/%5E" + indexName + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
       .method("GET", null)
       .build();
+    logger.info("Calling FMP to get prices of index {}", indexName);
     final var jsonNode = extract(request);
     return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
       .collect(Collectors.toMap(
@@ -73,6 +74,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
+        logger.info("Calling FMP to get stock prices for symbol {}", symbol);
         final var jsonNode = extract(request);
         return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
           .collect(Collectors.toMap(
@@ -94,6 +96,7 @@ public class FMPService {
         .url(BASE_URL + "/v4/treasury/?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
         .method("GET", null)
         .build();
+      logger.info("Calling FMP to get TB returns");
       final var jsonNode = extract(request);
       if (jsonNode.isEmpty()) {
         return map;
@@ -114,6 +117,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/historical-price-full/stock_dividend/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
+        logger.info("Calling FMP to get stock dividends for symbol {}", symbol);
         final var jsonNode = extract(request);
         if (jsonNode.get("historical") == null) {
           return new TreeMap<>();
@@ -139,6 +143,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
+        logger.info("Calling FMP to get stock return on equity for symbol {}", symbol);
         final var jsonNode = extract(request);
         return StreamSupport.stream(jsonNode.spliterator(), false)
           .collect(Collectors.toMap(
@@ -159,6 +164,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
+        logger.info("Calling FMP to get stock dividend payout ratios for symbol {}", symbol);
         final var jsonNode = extract(request);
         return StreamSupport.stream(jsonNode.spliterator(), false)
           .filter(n -> n.get("date") != null && !n.get("dividendPayoutRatio").toString().equals("null"))
