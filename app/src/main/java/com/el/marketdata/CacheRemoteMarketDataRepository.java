@@ -71,9 +71,19 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
     return tbReturns;
   }
 
+  /**
+   * Note: getStockDividends is called in the absence of at least an entry in stock_dividends table,
+   * therefore it is always called for symbols which did not issue dividends
+   */
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
-    return fmpService.getStockDividends(symbols, from, to);
+    final var stockDividends = fundamentalTradingDbFacade.getCachedStockDividends(symbols, from, to);
+    stockDividends.putAll(fmpService.getStockDividends(
+      symbols.stream().filter(s -> !stockDividends.containsKey(s)).collect(Collectors.toSet()),
+      from,
+      to
+    ));
+    return stockDividends;
   }
 
   @Override

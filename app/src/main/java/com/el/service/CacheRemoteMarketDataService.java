@@ -36,4 +36,10 @@ public class CacheRemoteMarketDataService {
     fundamentalTradingDbFacade.insertTbReturns(tbReturns);
   }
 
+  public static void fillStockDividendsCache(Set<String> symbols) {
+    final var stockDividends = fmpService.getStockDividends(symbols,
+      MIN_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant(),
+      MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
+    stockDividends.forEach(fundamentalTradingDbFacade::insertStockDividends);
+  }
 }

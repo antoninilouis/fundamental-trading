@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-public interface StockPriceDAO {
+public interface MarketDataDAO {
   @SqlQuery("select * from APP.STOCK_PRICES where SYMBOL = :symbol and TIMESTAMP between :from and :to")
   @RegisterRowMapper(LocalDateMapper.class)
   @RegisterRowMapper(PriceDoubleMapper.class)
@@ -34,6 +34,9 @@ public interface StockPriceDAO {
   @SqlBatch("insert into APP.TB_RETURNS (TIMESTAMP, RETURN) VALUES (:returns.getKey, :returns.getValue)")
   int[] insertTbReturns(@BindMethods("returns") Set<Map.Entry<LocalDate, Double>> entrySet);
 
+  @SqlBatch("insert into APP.STOCK_DIVIDENDS (SYMBOL, TIMESTAMP, DIVIDEND) VALUES (:symbol, :dividends.getKey, :dividends.getValue)")
+  int[] insertStockDividends(@Bind("symbol") String symbol, @BindMethods("dividends") Set<Map.Entry<LocalDate, Double>> dividends);
+
   class LocalDateMapper implements RowMapper<LocalDate> {
 
     @Override
@@ -47,14 +50,6 @@ public interface StockPriceDAO {
     @Override
     public Double map(ResultSet rs, StatementContext ctx) throws SQLException {
       return rs.getDouble("PRICE");
-    }
-  }
-
-  class ReturnDoubleMapper implements RowMapper<Double> {
-
-    @Override
-    public Double map(ResultSet rs, StatementContext ctx) throws SQLException {
-      return rs.getDouble("RETURN");
     }
   }
 }

@@ -119,6 +119,7 @@ public class FMPService {
           return new TreeMap<>();
         }
         return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
+          .filter(n -> n.get("date") != null && n.get("dividend") != null)
           .collect(Collectors.toMap(
             n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
             n -> Double.valueOf(n.get("dividend").toString()),
