@@ -22,7 +22,7 @@ import java.util.TreeMap;
 public interface StockPriceDAO {
   @SqlQuery("select * from APP.STOCK_PRICES where SYMBOL = :symbol and TIMESTAMP between :from and :to")
   @RegisterRowMapper(LocalDateMapper.class)
-  @RegisterRowMapper(DoubleMapper.class)
+  @RegisterRowMapper(PriceDoubleMapper.class)
   TreeMap<LocalDate, Double> getPricesBetween(@Bind("symbol") String symbol, @Bind("from") Instant from, @Bind("to") Instant to);
 
   @SqlBatch("insert into APP.STOCK_PRICES (SYMBOL, TIMESTAMP, PRICE) VALUES (:symbol, :prices.getKey, :prices.getValue)")
@@ -30,6 +30,9 @@ public interface StockPriceDAO {
 
   @SqlBatch("insert into APP.INDEX_PRICES (INDEX, TIMESTAMP, PRICE) VALUES (:index, :prices.getKey, :prices.getValue)")
   int[] insertIndexPrices(@Bind("index") String index, @BindMethods("prices") Set<Map.Entry<LocalDate, Double>> entrySet);
+
+  @SqlBatch("insert into APP.TB_RETURNS (TIMESTAMP, RETURN) VALUES (:returns.getKey, :returns.getValue)")
+  int[] insertTbReturns(@BindMethods("returns") Set<Map.Entry<LocalDate, Double>> entrySet);
 
   class LocalDateMapper implements RowMapper<LocalDate> {
 
@@ -39,11 +42,19 @@ public interface StockPriceDAO {
     }
   }
 
-  class DoubleMapper implements RowMapper<Double> {
+  class PriceDoubleMapper implements RowMapper<Double> {
 
     @Override
     public Double map(ResultSet rs, StatementContext ctx) throws SQLException {
       return rs.getDouble("PRICE");
+    }
+  }
+
+  class ReturnDoubleMapper implements RowMapper<Double> {
+
+    @Override
+    public Double map(ResultSet rs, StatementContext ctx) throws SQLException {
+      return rs.getDouble("RETURN");
     }
   }
 }

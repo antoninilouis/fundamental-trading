@@ -86,7 +86,6 @@ public class FMPService {
   }
 
   public TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
-    // todo: handle cases where loop can be infinite
     var tmpFrom = LocalDate.ofInstant(from, ZoneId.of("America/New_York"));
     var tmpTo = LocalDate.ofInstant(to, ZoneId.of("America/New_York"));
     var map = new TreeMap<LocalDate, Double>();
@@ -96,6 +95,9 @@ public class FMPService {
         .method("GET", null)
         .build();
       final var jsonNode = extract(request);
+      if (jsonNode.isEmpty()) {
+        return map;
+      }
       StreamSupport.stream(jsonNode.spliterator(), false)
         .forEach(e -> map.put(LocalDate.parse(e.get("date").toString().replaceAll("\"", "")),
           Double.valueOf(e.get("month3").toString())));

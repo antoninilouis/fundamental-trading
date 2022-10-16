@@ -67,15 +67,27 @@ class OptimalRiskyPortfolioTest {
 
   @Test
   @Disabled
-  public void fillIndexCache() {
+  public void fillStockPricesCache() {
+    CacheRemoteMarketDataService.fillStockPricesCache(extractSymbols("symbols.txt"));
+  }
+
+  @Test
+  @Disabled
+  public void fillIndexPricesCache() {
     CacheRemoteMarketDataService.fillIndexPricesCache(CacheRemoteMarketDataRepository.INDEX_NAME);
+  }
+
+  @Test
+  @Disabled
+  public void fillTbReturnsCache() {
+    CacheRemoteMarketDataService.fillTbReturnsCache();
   }
 
   @Test
   @Disabled
   public void backtestWithNasdaq100RemoteMarketDataAndCache() {
     final var marketDataRepository = new CacheRemoteMarketDataRepository(
-      extractSymbols("symbols_small.txt"),
+      extractSymbols("symbols.txt"),
       TRADE_DATE,
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant(),
       ZonedDateTime.of(LocalDate.of(2022, 9, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()

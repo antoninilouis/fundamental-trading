@@ -55,7 +55,7 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
-    final var indexPrices = fundamentalTradingDbFacade.getCachedIndexPrices(INDEX_NAME, from, to);
+    final var indexPrices = fundamentalTradingDbFacade.getCachedTbReturns(INDEX_NAME, from, to);
     if (indexPrices.isEmpty()) {
       indexPrices.putAll(fmpService.getIndexPrices(INDEX_NAME, from, to));
     }
@@ -64,7 +64,11 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
-    return fmpService.getTbReturns(from, to);
+    final var tbReturns = fundamentalTradingDbFacade.getCachedTbReturns(from, to);
+    if (tbReturns.isEmpty()) {
+      tbReturns.putAll(fmpService.getTbReturns(from, to));
+    }
+    return tbReturns;
   }
 
   @Override

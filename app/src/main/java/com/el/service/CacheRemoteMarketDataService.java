@@ -29,4 +29,11 @@ public class CacheRemoteMarketDataService {
     fundamentalTradingDbFacade.insertIndexPrices(index, indexPrices);
   }
 
+  public static void fillTbReturnsCache() {
+    final var tbReturns = fmpService.getTbReturns(
+      MIN_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant(),
+      MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
+    fundamentalTradingDbFacade.insertTbReturns(tbReturns);
+  }
+
 }
