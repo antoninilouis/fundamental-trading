@@ -25,12 +25,12 @@ public abstract class MarketDataRepository {
   private Map<String, TreeMap<LocalDate, Double>> stockReturnOnEquity;
   private Map<String, TreeMap<LocalDate, Double>> stockDividendPayoutRatio;
 
-  public MarketDataRepository(final Set<String> symbols, final LocalDate tradeDate) {
+  protected MarketDataRepository(final Set<String> symbols, final LocalDate tradeDate) {
     this.symbols = symbols;
     this.tradeDate = tradeDate;
   }
 
-  public void initialize(final Instant from, final Instant to) {
+  protected void initialize(final Instant from, final Instant to) {
     if (from.isAfter(to)) {
       throw new IllegalArgumentException("Start date is after end date");
     }
@@ -75,7 +75,7 @@ public abstract class MarketDataRepository {
     return stockReturns;
   }
 
-  static TreeMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
+  protected static TreeMap<LocalDate, Double> toReturnPercents(final Map<LocalDate, Double> prices) {
     final var copy = getCopy(prices);
     final var iterator = copy.entrySet().iterator();
     final var firstEntry = iterator.next();
@@ -101,7 +101,7 @@ public abstract class MarketDataRepository {
       ));
   }
 
-  public void computeStockRegressionResult(String symbol) {
+  private void computeStockRegressionResult(String symbol) {
     final var reg = new SimpleRegression();
     final var indexReturns = getPastIndexReturns();
     final var stockReturns = getPastStockReturns(symbol);
