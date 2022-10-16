@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -18,6 +20,7 @@ import java.util.stream.StreamSupport;
 
 public class FMPService {
 
+  private static final Logger logger = LoggerFactory.getLogger(FMPService.class);
   private static final String BASE_URL = "https://financialmodelingprep.com/api";
   private final ObjectMapper om = new ObjectMapper();
   private final OkHttpClient client;
@@ -38,6 +41,9 @@ public class FMPService {
 
   private JsonNode extract(Request request) {
     try (Response response = client.newCall(request).execute()) {
+      if (!response.isSuccessful()) {
+        logger.warn("Unsuccessful response: {}", response);
+      }
       return om.readTree(Objects.requireNonNull(response.body()).string());
     } catch (IOException e) {
       throw new RuntimeException(e);

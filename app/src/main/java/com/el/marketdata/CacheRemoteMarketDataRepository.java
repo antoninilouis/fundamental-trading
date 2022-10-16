@@ -5,19 +5,12 @@ import com.el.service.FundamentalTradingDbFacade;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * Fit in 300rpm limit when backtesting:
- * - History: pull and save prices in [2012-01-01, 2022-10-01] in a table [Stock, LocalDate, Double]
- *   - Oldest data point is always at date 2012-01-01
- *   - Newest data point is always at date 2022-10-01
- * - Rate limit FMPService (will take 20+ minutes to load the data so should be done once)
- * - 1/ batch pull data using FMPService, 2/ persist all the data, 3/ make FMPService able to retrieve from it
- * - Only enable this behavior if an instance of FundamentalTradingDbFacade is provided
- *
  * Reduce nb requests when live trading:
  * - History: pull and save prices in [2012-01-01, Previous Day] in a table [Stock, LocalDate, Double]
  *   - Oldest data point is always at date 2012-01-01
@@ -28,26 +21,40 @@ import java.util.TreeMap;
  */
 public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
-  private final FMPService fmpService = new FMPService();
-  private final FundamentalTradingDbFacade fundamentalTradingDbFacade;
-  private final LocalDate MIN_DATE = LocalDate.of(2012, 1, 1);
-  private final LocalDate MAX_DATE = LocalDate.of(2022, 9, 1);
+  private static final FMPService fmpService = new FMPService();
+  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
+  private static final LocalDate MIN_DATE = LocalDate.of(2012, 1, 1);
+  private static final LocalDate MAX_DATE = LocalDate.of(2022, 9, 1);
+  private Boolean fillCache;
 
   public CacheRemoteMarketDataRepository(
     final LocalDate tradeDate,
     final Instant from,
-    final Instant to
+    final Instant to,
+    final Boolean fillCache
   ) {
     super(tradeDate);
-    this.fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
-    this.initialize(from, to);
+    this.fillCache = fillCache;
+    initialize(from, to);
   }
 
+  public static void fillCache(Set<String> symbols) {
+    final var stockPrices = fmpService.getStockPrices(symbols,
+      MIN_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant(),
+      MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
+    stockPrices.forEach(fundamentalTradingDbFacade::insertStockPrices);
+  }
+
+  /**
+   * The cache stores data for the cache period [MIN_DATE, MAX_DATE]
+   * All symbols present in cache have all available data for the cache period
+   * @return stock prices retrieved from cache or from remote source if not present in cache
+   */
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
-    // todo: the cache will always store data from period [2012-01-01, 2022-09-01]
-    //  any date outside of this is forbidden
-    //  any symbol present in db will be considered to have all the data,
+    if (this.fillCache) {
+      fillCache(symbols);
+    }
     final var stockPrices = fundamentalTradingDbFacade.getCachedStockPrices(symbols, from, to);
     symbols.removeIf(stockPrices::containsKey);
     stockPrices.putAll(fmpService.getStockPrices(symbols, from, to));

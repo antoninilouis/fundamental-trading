@@ -4,6 +4,8 @@ import org.jdbi.v3.core.mapper.RowMapper;
 import org.jdbi.v3.core.statement.StatementContext;
 import org.jdbi.v3.sqlobject.config.RegisterRowMapper;
 import org.jdbi.v3.sqlobject.customizer.Bind;
+import org.jdbi.v3.sqlobject.customizer.BindMethods;
+import org.jdbi.v3.sqlobject.statement.SqlBatch;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 
 import java.sql.ResultSet;
@@ -12,6 +14,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
+import java.util.Map;
 import java.util.TreeMap;
 
 public interface StockPriceDAO {
@@ -19,6 +23,9 @@ public interface StockPriceDAO {
   @RegisterRowMapper(LocalDateMapper.class)
   @RegisterRowMapper(DoubleMapper.class)
   TreeMap<LocalDate, Double> getPricesBetween(@Bind("symbol") String symbol, @Bind("from") Instant from, @Bind("to") Instant to);
+
+  @SqlBatch("insert into APP.STOCK_PRICES (SYMBOL, TIMESTAMP, PRICE) VALUES (:symbol, :prices.getKey, :prices.getValue)")
+  void insertStockPrices(@Bind("symbol") String symbol, @BindMethods("prices") Collection<Map.Entry<LocalDate, Double>> prices);
 
   class LocalDateMapper implements RowMapper<LocalDate> {
 
