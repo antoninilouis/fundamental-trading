@@ -71,9 +71,7 @@ public abstract class MarketDataRepository {
 
   private Map<String, TreeMap<LocalDate, Double>> getStockReturns(Map<String, TreeMap<LocalDate, Double>> stockPrices) {
     final var stockReturns = new HashMap<String, TreeMap<LocalDate, Double>>();
-    this.symbols.forEach(symbol -> {
-      stockReturns.put(symbol, toReturnPercents(stockPrices.get(symbol)));
-    });
+    this.symbols.forEach(symbol -> stockReturns.put(symbol, toReturnPercents(stockPrices.get(symbol))));
     return stockReturns;
   }
 
@@ -137,24 +135,15 @@ public abstract class MarketDataRepository {
       .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
   }
 
-  private TreeMap<LocalDate, Double> getPastStockDividends(String symbol) {
-    final var stockDividends = this.stockDividends.get(symbol).entrySet().stream()
-      .filter(e -> e.getKey().isBefore(tradeDate))
-      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
-    if (stockDividends.isEmpty()) {
-      stockDividends.put(tradeDate.minusDays(1), 0.0);
-    }
-    return stockDividends;
-  }
-
   public double getLatestDividend(String symbol) {
-    final var optLatestDividend = getPastStockDividends(symbol).entrySet().stream()
-      .max(Map.Entry.comparingByKey());
-    var latestDividend = 0.0;
-    if (optLatestDividend.isPresent()) {
-      latestDividend = optLatestDividend.get().getValue();
+    if (!stockDividends.containsKey(symbol)) {
+      return 0.0;
     }
-    return latestDividend;
+    var latest = this.stockDividends.get(symbol).floorEntry(tradeDate);
+    if (latest == null) {
+      return 0.0;
+    }
+    return latest.getValue();
   }
 
   public TreeMap<LocalDate, Double> getPastTbReturns() {
@@ -164,11 +153,25 @@ public abstract class MarketDataRepository {
   }
 
   public Double getLatestStockReturnOnEquity(String symbol) {
-    return stockReturnOnEquity.get(symbol).floorEntry(tradeDate).getValue();
+    if (!stockReturnOnEquity.containsKey(symbol)) {
+      return 0.0;
+    }
+    var latest = stockReturnOnEquity.get(symbol).floorEntry(tradeDate);
+    if (latest == null) {
+      return 0.0;
+    }
+    return latest.getValue();
   }
 
   public Double getLatestStockDividendPayoutRatio(String symbol) {
-    return stockDividendPayoutRatio.get(symbol).floorEntry(tradeDate).getValue();
+    if (!stockDividendPayoutRatio.containsKey(symbol)) {
+      return 0.0;
+    }
+    var latest = stockDividendPayoutRatio.get(symbol).floorEntry(tradeDate);
+    if (latest == null) {
+      return 0.0;
+    }
+    return latest.getValue();
   }
 
   public TreeMap<LocalDate, Double> getPastIndexReturns() {
