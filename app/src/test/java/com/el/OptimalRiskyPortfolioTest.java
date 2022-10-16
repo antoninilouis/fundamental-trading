@@ -97,6 +97,12 @@ class OptimalRiskyPortfolioTest {
 
   @Test
   @Disabled
+  public void fillStockDividendPayoutRatio() {
+    CacheRemoteMarketDataService.fillStockDividendPayoutRatio(extractSymbols("symbols.txt"));
+  }
+
+  @Test
+  @Disabled
   public void backtestWithNasdaq100RemoteMarketDataAndCache() {
     final var marketDataRepository = new CacheRemoteMarketDataRepository(
       extractSymbols("symbols.txt"),

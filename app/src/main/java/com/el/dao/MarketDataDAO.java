@@ -40,6 +40,9 @@ public interface MarketDataDAO {
   @SqlBatch("insert into APP.STOCK_RETURN_ON_EQUITY (SYMBOL, TIMESTAMP, RETURN) VALUES (:symbol, :roes.getKey, :roes.getValue)")
   int[] insertStockReturnOnEquity(@Bind("symbol") String symbol, @BindMethods("roes") Set<Map.Entry<LocalDate, Double>> roes);
 
+  @SqlBatch("insert into APP.STOCK_DIVIDEND_PAYOUT_RATIO (SYMBOL, TIMESTAMP, DIVIDEND_PAYOUT_RATIO) VALUES (:symbol, :dividendPayoutRatios.getKey, :dividendPayoutRatios.getValue)")
+  int[] insertStockDividendPayoutRatios(@Bind("symbol") String symbol, @BindMethods("dividendPayoutRatios") Set<Map.Entry<LocalDate, Double>> dividendPayoutRatios);
+
   class LocalDateMapper implements RowMapper<LocalDate> {
 
     @Override

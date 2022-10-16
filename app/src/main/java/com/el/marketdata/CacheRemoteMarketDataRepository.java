@@ -99,6 +99,12 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to) {
-    return fmpService.getStockDividendPayoutRatio(symbols, from, to);
+    final var stockDividendPayoutRatio = fundamentalTradingDbFacade.getCachedStockDividendPayoutRatio(symbols, from, to);
+    stockDividendPayoutRatio.putAll(fmpService.getStockDividendPayoutRatio(
+      symbols.stream().filter(s -> !stockDividendPayoutRatio.containsKey(s)).collect(Collectors.toSet()),
+      from,
+      to
+    ));
+    return stockDividendPayoutRatio;
   }
 }

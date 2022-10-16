@@ -161,9 +161,10 @@ public class FMPService {
           .build();
         final var jsonNode = extract(request);
         return StreamSupport.stream(jsonNode.spliterator(), false)
+          .filter(n -> n.get("date") != null && !n.get("dividendPayoutRatio").toString().equals("null"))
           .collect(Collectors.toMap(
             n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-            n -> n.get("dividendPayoutRatio").toString().equals("null") ? Double.NaN : Double.parseDouble(n.get("dividendPayoutRatio").toString()),
+            n -> Double.parseDouble(n.get("dividendPayoutRatio").toString()),
             (o1, o2) -> o1,
             TreeMap::new
           ));

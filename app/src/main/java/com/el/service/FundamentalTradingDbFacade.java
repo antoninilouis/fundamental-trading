@@ -88,6 +88,15 @@ public class FundamentalTradingDbFacade {
     }
   }
 
+  public void insertStockDividendPayoutRatio(String symbol, TreeMap<LocalDate, Double> dividendPayoutRatios) {
+    try {
+      final int[] batchInserts = jdbi.withExtension(MarketDataDAO.class, dao -> dao.insertStockDividendPayoutRatios(symbol, dividendPayoutRatios.entrySet()));
+      logger.info("Inserted {} dividend payout ratios entries for symbol {}", Arrays.stream(batchInserts).sum(), symbol);
+    } catch (JdbiException e) {
+      throw new RuntimeException(e.getMessage());
+    }
+  }
+
   public Map<String, TreeMap<LocalDate, Double>> getCachedStockPrices(Set<String> symbols, Instant from, Instant to) {
     return symbols.stream()
       .collect(Collectors.toMap(
@@ -148,6 +157,22 @@ public class FundamentalTradingDbFacade {
         symbol -> jdbi.withHandle(handle ->
           handle.createQuery("select * from APP.STOCK_RETURN_ON_EQUITY where SYMBOL = :symbol and TIMESTAMP between :from and :to")
             .registerRowMapper(new DoubleMapper("RETURN"))
+            .registerRowMapper(new MarketDataDAO.LocalDateMapper())
+            .bind("symbol", symbol)
+            .bind("from", Timestamp.from(from))
+            .bind("to", Timestamp.from(to))
+            .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
+      ))
+      .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getCachedStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to) {
+    return symbols.stream()
+      .collect(Collectors.toMap(
+        Function.identity(),
+        symbol -> jdbi.withHandle(handle ->
+          handle.createQuery("select * from APP.STOCK_DIVIDEND_PAYOUT_RATIO where SYMBOL = :symbol and TIMESTAMP between :from and :to")
+            .registerRowMapper(new DoubleMapper("DIVIDEND_PAYOUT_RATIO"))
             .registerRowMapper(new MarketDataDAO.LocalDateMapper())
             .bind("symbol", symbol)
             .bind("from", Timestamp.from(from))

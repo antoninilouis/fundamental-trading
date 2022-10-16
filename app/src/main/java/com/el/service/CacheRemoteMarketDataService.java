@@ -49,4 +49,11 @@ public class CacheRemoteMarketDataService {
       MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
     stockReturnOnEquity.forEach(fundamentalTradingDbFacade::insertStockReturnOnEquity);
   }
+
+  public static void fillStockDividendPayoutRatio(Set<String> symbols) {
+    final var stockReturnOnEquity = fmpService.getStockDividendPayoutRatio(symbols,
+      MIN_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant(),
+      MAX_DATE.atStartOfDay(ZoneId.of("America/New_York")).toInstant());
+    stockReturnOnEquity.forEach(fundamentalTradingDbFacade::insertStockDividendPayoutRatio);
+  }
 }
