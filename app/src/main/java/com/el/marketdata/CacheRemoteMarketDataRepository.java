@@ -88,7 +88,13 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
-    return fmpService.getStockReturnOnEquity(symbols, from, to);
+    final var stockROE = fundamentalTradingDbFacade.getCachedStockReturnOnEquity(symbols, from, to);
+    stockROE.putAll(fmpService.getStockReturnOnEquity(
+      symbols.stream().filter(s -> !stockROE.containsKey(s)).collect(Collectors.toSet()),
+      from,
+      to
+    ));
+    return stockROE;
   }
 
   @Override

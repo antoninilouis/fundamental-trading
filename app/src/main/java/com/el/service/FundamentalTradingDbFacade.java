@@ -79,6 +79,15 @@ public class FundamentalTradingDbFacade {
     }
   }
 
+  public void insertStockReturnOnEquity(String symbol, TreeMap<LocalDate, Double> roes) {
+    try {
+      final int[] batchInserts = jdbi.withExtension(MarketDataDAO.class, dao -> dao.insertStockReturnOnEquity(symbol, roes.entrySet()));
+      logger.info("Inserted {} roe entries for symbol {}", Arrays.stream(batchInserts).sum(), symbol);
+    } catch (JdbiException e) {
+      throw new RuntimeException(e.getMessage());
+    }
+  }
+
   public Map<String, TreeMap<LocalDate, Double>> getCachedStockPrices(Set<String> symbols, Instant from, Instant to) {
     return symbols.stream()
       .collect(Collectors.toMap(
@@ -123,6 +132,22 @@ public class FundamentalTradingDbFacade {
         symbol -> jdbi.withHandle(handle ->
           handle.createQuery("select * from APP.STOCK_DIVIDENDS where SYMBOL = :symbol and TIMESTAMP between :from and :to")
             .registerRowMapper(new DoubleMapper("DIVIDEND"))
+            .registerRowMapper(new MarketDataDAO.LocalDateMapper())
+            .bind("symbol", symbol)
+            .bind("from", Timestamp.from(from))
+            .bind("to", Timestamp.from(to))
+            .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
+      ))
+      .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getCachedStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
+    return symbols.stream()
+      .collect(Collectors.toMap(
+        Function.identity(),
+        symbol -> jdbi.withHandle(handle ->
+          handle.createQuery("select * from APP.STOCK_RETURN_ON_EQUITY where SYMBOL = :symbol and TIMESTAMP between :from and :to")
+            .registerRowMapper(new DoubleMapper("RETURN"))
             .registerRowMapper(new MarketDataDAO.LocalDateMapper())
             .bind("symbol", symbol)
             .bind("from", Timestamp.from(from))

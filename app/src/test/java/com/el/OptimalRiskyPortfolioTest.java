@@ -91,6 +91,12 @@ class OptimalRiskyPortfolioTest {
 
   @Test
   @Disabled
+  public void fillStockReturnOnEquity() {
+    CacheRemoteMarketDataService.fillStockReturnOnEquity(extractSymbols("symbols.txt"));
+  }
+
+  @Test
+  @Disabled
   public void backtestWithNasdaq100RemoteMarketDataAndCache() {
     final var marketDataRepository = new CacheRemoteMarketDataRepository(
       extractSymbols("symbols.txt"),
