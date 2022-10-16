@@ -2,6 +2,8 @@ package com.el.marketdata;
 
 import com.el.service.FMPService;
 import com.el.service.FundamentalTradingDbFacade;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,6 +23,7 @@ import java.util.TreeMap;
  */
 public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
+  private static final Logger logger = LoggerFactory.getLogger(CacheRemoteMarketDataRepository.class);
   private static final FMPService fmpService = new FMPService();
   private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
   private static final LocalDate MIN_DATE = LocalDate.of(2012, 1, 1);

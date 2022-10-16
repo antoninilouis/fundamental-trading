@@ -25,7 +25,7 @@ public interface StockPriceDAO {
   TreeMap<LocalDate, Double> getPricesBetween(@Bind("symbol") String symbol, @Bind("from") Instant from, @Bind("to") Instant to);
 
   @SqlBatch("insert into APP.STOCK_PRICES (SYMBOL, TIMESTAMP, PRICE) VALUES (:symbol, :prices.getKey, :prices.getValue)")
-  void insertStockPrices(@Bind("symbol") String symbol, @BindMethods("prices") Collection<Map.Entry<LocalDate, Double>> prices);
+  int[] insertStockPrices(@Bind("symbol") String symbol, @BindMethods("prices") Collection<Map.Entry<LocalDate, Double>> prices);
 
   class LocalDateMapper implements RowMapper<LocalDate> {
 

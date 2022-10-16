@@ -2,6 +2,7 @@ package com.el.service;
 
 import com.el.dao.StockPriceDAO;
 import org.jdbi.v3.core.Jdbi;
+import org.jdbi.v3.core.JdbiException;
 import org.jdbi.v3.core.generic.GenericType;
 import org.jdbi.v3.core.statement.Slf4JSqlLogger;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
@@ -40,7 +41,12 @@ public class FundamentalTradingDbFacade {
   }
 
   public void insertStockPrices(String symbol, TreeMap<LocalDate, Double> prices) {
-    jdbi.useExtension(StockPriceDAO.class, dao -> dao.insertStockPrices(symbol, prices.entrySet()));
+    try {
+      final int[] batchInserts = jdbi.withExtension(StockPriceDAO.class, dao -> dao.insertStockPrices(symbol, prices.entrySet()));
+      logger.info("Inserted {} entries for symbol {}", Arrays.stream(batchInserts).sum(), symbol);
+    } catch (JdbiException e) {
+      throw new RuntimeException(e.getMessage());
+    }
   }
 
   public boolean contains(String symbol) {
