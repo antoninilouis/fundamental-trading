@@ -13,19 +13,17 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
- * Reduce nb requests when live trading:
- * - History: pull and save prices in [2012-01-01, Previous Day] in a table [Stock, LocalDate, Double]
- *   - Oldest data point is always at date 2012-01-01
- *   - Newest data point is always the last one inserted
- * - Refresh: pull and save prices in [Newest, Previous Day]
- *   - /v3/ratios can't be multi company
- *   - /v3/historical-price-full can be multi company (up to 250pts per company)
+ * As part of this naive cache implementation:
+ * - any record in cache is interpreted as if ALL the data for that metric and symbol is in cache and so needs not be fetched
+ * - any missing cache record causes all the data for that metric and symbol to be fetched but NOT SAVED in cache
+ *
+ * Before use, fill the cache for the backtest period e.g. using CacheRemoteMarketDataService to limit api calls
  */
 public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
   private static final Logger logger = LoggerFactory.getLogger(CacheRemoteMarketDataRepository.class);
   private static final FMPService fmpService = new FMPService();
-  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
+  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("fundamental-tradingDB");
 
   public CacheRemoteMarketDataRepository(
     final Set<String> symbols,

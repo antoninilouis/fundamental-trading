@@ -87,6 +87,30 @@ public class FMPService {
     ));
   }
 
+  public Map<String, TreeMap<LocalDate, Double>> getStockPricesUpdates(Map<String, AbstractMap.SimpleEntry<LocalDate, LocalDate>> periodsToFetch) {
+    return periodsToFetch.entrySet().stream().collect(Collectors.toMap(
+      Map.Entry::getKey,
+      entry -> {
+        final var symbol = entry.getKey();
+        final var from = entry.getValue().getKey(); // SimpleEntry::getKey
+        final var to = entry.getValue().getValue(); // SimpleEntry::getValue
+        final Request request = new Request.Builder()
+          .url(BASE_URL + "/v3/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + from + "&to=" + to)
+          .method("GET", null)
+          .build();
+        logger.info("Calling FMP to get stock prices updates for symbol {}", symbol);
+        final var jsonNode = extract(request);
+        return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
+          .collect(Collectors.toMap(
+            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
+            n -> Double.valueOf(n.get("close").toString()),
+            (o1, o2) -> o1,
+            TreeMap::new
+          ));
+      }
+    ));
+  }
+
   public TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
     var tmpFrom = LocalDate.ofInstant(from, ZoneId.of("America/New_York"));
     var tmpTo = LocalDate.ofInstant(to, ZoneId.of("America/New_York"));

@@ -28,3 +28,4 @@ hs_err_pid*
 #derby
 derby.log
 fundamental-tradingDB
+live-fundamental-tradingDB
