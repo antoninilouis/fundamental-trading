@@ -85,7 +85,13 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
-    return fundamentalTradingDbFacade.getCachedStockDividends(symbols, from, to);
+    final var stockDividends = fundamentalTradingDbFacade.getCachedStockDividends(symbols, from, to);
+    final var periodsToFetch = getPeriodsToFetch(stockDividends, to);
+    fmpService.getStockDividendsUpdates(periodsToFetch).forEach((key, value) -> {
+      stockDividends.get(key).putAll(value);
+      fundamentalTradingDbFacade.insertStockDividends(key, value);
+    });
+    return stockDividends;
   }
 
   @Override
