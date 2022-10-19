@@ -107,7 +107,13 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to) {
-    return fundamentalTradingDbFacade.getCachedStockDividendPayoutRatio(symbols, from, to);
+    final var stockDividendPayoutRatio = fundamentalTradingDbFacade.getCachedStockDividendPayoutRatio(symbols, from, to);
+    final var periodsToFetch = getPeriodsToFetch(stockDividendPayoutRatio, to);
+    fmpService.getStockDividendPayoutRatioUpdates(periodsToFetch).forEach((key, value) -> {
+      stockDividendPayoutRatio.get(key).putAll(value);
+      fundamentalTradingDbFacade.insertStockDividendPayoutRatio(key, value);
+    });
+    return stockDividendPayoutRatio;
   }
 
   private Map<String, AbstractMap.SimpleEntry<LocalDate, LocalDate>> getPeriodsToFetch(

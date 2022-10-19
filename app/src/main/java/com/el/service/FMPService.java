@@ -52,22 +52,22 @@ public class FMPService {
   }
 
   public TreeMap<LocalDate, Double> getIndexPrices(String indexName, Instant from, Instant to) {
+    logger.info("Calling FMP to get prices of index {}", indexName);
     final Request request = new Request.Builder()
       .url(BASE_URL + "/v3/historical-price-full/%5E" + indexName + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
       .method("GET", null)
       .build();
-    logger.info("Calling FMP to get prices of index {}", indexName);
     return getResultAsLocalDateDoubleTreeMap(request, "close");
   }
 
   public TreeMap<LocalDate, Double> getIndexPricesUpdates(String indexName, AbstractMap.SimpleEntry<LocalDate, LocalDate> periodToFetch) {
     final var from = periodToFetch.getKey();
     final var to = periodToFetch.getValue();
+    logger.info("Calling FMP to get prices updates of index {}", indexName);
     final Request request = new Request.Builder()
       .url(BASE_URL + "/v3/historical-price-full/%5E" + indexName + "?apikey=" + apikey + "&from=" + from + "&to=" + to)
       .method("GET", null)
       .build();
-    logger.info("Calling FMP to get prices updates of index {}", indexName);
     return getResultAsLocalDateDoubleTreeMap(request, "close");
   }
 
@@ -92,11 +92,11 @@ public class FMPService {
         final var symbol = entry.getKey();
         final var from = entry.getValue().getKey(); // SimpleEntry::getKey
         final var to = entry.getValue().getValue(); // SimpleEntry::getValue
+        logger.info("Calling FMP to get stock prices updates for symbol {}", symbol);
         final Request request = new Request.Builder()
           .url(BASE_URL + "/v3/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + from + "&to=" + to)
           .method("GET", null)
           .build();
-        logger.info("Calling FMP to get stock prices updates for symbol {}", symbol);
         return getResultAsLocalDateDoubleTreeMap(request, "close");
       }
     ));
@@ -168,15 +168,14 @@ public class FMPService {
   }
 
   public Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
-    // todo: handle cases where no return on equity is present in the response
     return symbols.stream().collect(Collectors.toMap(
       Function.identity(),
       symbol -> {
+        logger.info("Calling FMP to get stock return on equity for symbol {}", symbol);
         final Request request = new Request.Builder()
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
-        logger.info("Calling FMP to get stock return on equity for symbol {}", symbol);
         return getResultAsLocalDateDoubleTreeMap(request, "returnOnEquity");
       }
     ));
@@ -203,20 +202,29 @@ public class FMPService {
     return symbols.stream().collect(Collectors.toMap(
       Function.identity(),
       symbol -> {
+        logger.info("Calling FMP to get stock dividend payout ratios for symbol {}", symbol);
         final Request request = new Request.Builder()
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
-        logger.info("Calling FMP to get stock dividend payout ratios for symbol {}", symbol);
-        final var jsonNode = extract(request);
-        return StreamSupport.stream(jsonNode.spliterator(), false)
-          .filter(n -> n.get("date") != null && !n.get("dividendPayoutRatio").toString().equals("null"))
-          .collect(Collectors.toMap(
-            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-            n -> Double.parseDouble(n.get("dividendPayoutRatio").toString()),
-            (o1, o2) -> o1,
-            TreeMap::new
-          ));
+        return getResultAsLocalDateDoubleTreeMap(request, "dividendPayoutRatio");
+      }
+    ));
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatioUpdates(Map<String, AbstractMap.SimpleEntry<LocalDate, LocalDate>> periodsToFetch) {
+    return periodsToFetch.entrySet().stream().collect(Collectors.toMap(
+      Map.Entry::getKey,
+      entry -> {
+        final var symbol = entry.getKey();
+        final var tmpFrom = entry.getValue().getKey();
+        final var tmpTo = entry.getValue().getValue();
+        logger.info("Calling FMP to get stock dividend payout ratios updates for symbol {}", symbol);
+        final Request request = new Request.Builder()
+          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
+          .method("GET", null)
+          .build();
+        return getResultAsLocalDateDoubleTreeMap(request, "dividendPayoutRatio");
       }
     ));
   }
