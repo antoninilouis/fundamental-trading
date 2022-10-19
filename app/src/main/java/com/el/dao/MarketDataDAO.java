@@ -12,8 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -43,11 +41,14 @@ public interface MarketDataDAO {
   @SqlBatch("insert into APP.STOCK_DIVIDEND_PAYOUT_RATIO (SYMBOL, TIMESTAMP, DIVIDEND_PAYOUT_RATIO) VALUES (:symbol, :dividendPayoutRatios.getKey, :dividendPayoutRatios.getValue)")
   int[] insertStockDividendPayoutRatios(@Bind("symbol") String symbol, @BindMethods("dividendPayoutRatios") Set<Map.Entry<LocalDate, Double>> dividendPayoutRatios);
 
+  /**
+   * Important: db TIMESTAMP's represent ZonedDateTime for America/New_York, not Instants!
+   */
   class LocalDateMapper implements RowMapper<LocalDate> {
 
     @Override
     public LocalDate map(ResultSet rs, StatementContext ctx) throws SQLException {
-      return LocalDateTime.ofInstant(rs.getTimestamp("TIMESTAMP").toInstant(), ZoneId.of("America/New_York")).toLocalDate();
+      return rs.getTimestamp("TIMESTAMP").toLocalDateTime().toLocalDate();
     }
   }
 
