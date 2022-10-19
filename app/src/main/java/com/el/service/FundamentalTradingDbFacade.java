@@ -14,9 +14,9 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -106,8 +106,8 @@ public class FundamentalTradingDbFacade {
             .registerRowMapper(new DoubleMapper("PRICE"))
             .registerRowMapper(new MarketDataDAO.LocalDateMapper())
             .bind("symbol", symbol)
-            .bind("from", Timestamp.from(from))
-            .bind("to", Timestamp.from(to))
+            .bind("from", LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+            .bind("to", LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
             .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
       ))
       .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -119,8 +119,8 @@ public class FundamentalTradingDbFacade {
         .registerRowMapper(new DoubleMapper("PRICE"))
         .registerRowMapper(new MarketDataDAO.LocalDateMapper())
         .bind("index", index)
-        .bind("from", Timestamp.from(from))
-        .bind("to", Timestamp.from(to))
+        .bind("from", LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+        .bind("to", LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
         .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}));
   }
 
@@ -129,8 +129,8 @@ public class FundamentalTradingDbFacade {
       handle.createQuery("select * from APP.TB_RETURNS where TIMESTAMP between :from and :to")
         .registerRowMapper(new DoubleMapper("RETURN"))
         .registerRowMapper(new MarketDataDAO.LocalDateMapper())
-        .bind("from", Timestamp.from(from))
-        .bind("to", Timestamp.from(to))
+        .bind("from", LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+        .bind("to", LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
         .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}));
   }
 
@@ -143,8 +143,8 @@ public class FundamentalTradingDbFacade {
             .registerRowMapper(new DoubleMapper("DIVIDEND"))
             .registerRowMapper(new MarketDataDAO.LocalDateMapper())
             .bind("symbol", symbol)
-            .bind("from", Timestamp.from(from))
-            .bind("to", Timestamp.from(to))
+            .bind("from", LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+            .bind("to", LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
             .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
       ))
       .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -159,8 +159,8 @@ public class FundamentalTradingDbFacade {
             .registerRowMapper(new DoubleMapper("RETURN"))
             .registerRowMapper(new MarketDataDAO.LocalDateMapper())
             .bind("symbol", symbol)
-            .bind("from", Timestamp.from(from))
-            .bind("to", Timestamp.from(to))
+            .bind("from", LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+            .bind("to", LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
             .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
       ))
       .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -175,8 +175,8 @@ public class FundamentalTradingDbFacade {
             .registerRowMapper(new DoubleMapper("DIVIDEND_PAYOUT_RATIO"))
             .registerRowMapper(new MarketDataDAO.LocalDateMapper())
             .bind("symbol", symbol)
-            .bind("from", Timestamp.from(from))
-            .bind("to", Timestamp.from(to))
+            .bind("from", LocalDate.ofInstant(from, ZoneId.of("America/New_York")))
+            .bind("to", LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
             .collectInto(new GenericType<TreeMap<LocalDate, Double>>() {}))
       ))
       .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
