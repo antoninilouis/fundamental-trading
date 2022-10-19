@@ -96,7 +96,13 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
-    return fundamentalTradingDbFacade.getCachedStockReturnOnEquity(symbols, from, to);
+    final var stockReturnOnEquity = fundamentalTradingDbFacade.getCachedStockReturnOnEquity(symbols, from, to);
+    final var periodsToFetch = getPeriodsToFetch(stockReturnOnEquity, to);
+    fmpService.getStockReturnOnEquityUpdates(periodsToFetch).forEach((key, value) -> {
+      stockReturnOnEquity.get(key).putAll(value);
+      fundamentalTradingDbFacade.insertStockReturnOnEquity(key, value);
+    });
+    return stockReturnOnEquity;
   }
 
   @Override

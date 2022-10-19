@@ -177,14 +177,24 @@ public class FMPService {
           .method("GET", null)
           .build();
         logger.info("Calling FMP to get stock return on equity for symbol {}", symbol);
-        final var jsonNode = extract(request);
-        return StreamSupport.stream(jsonNode.spliterator(), false)
-          .collect(Collectors.toMap(
-            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-            n -> Double.valueOf(n.get("returnOnEquity").toString()),
-            (o1, o2) -> o1,
-            TreeMap::new
-          ));
+        return getResultAsLocalDateDoubleTreeMap(request, "returnOnEquity");
+      }
+    ));
+  }
+
+  public Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquityUpdates(Map<String, AbstractMap.SimpleEntry<LocalDate, LocalDate>> periodsToFetch) {
+    return periodsToFetch.entrySet().stream().collect(Collectors.toMap(
+      Map.Entry::getKey,
+      entry -> {
+        final var symbol = entry.getKey();
+        final var tmpFrom = entry.getValue().getKey();
+        final var tmpTo = entry.getValue().getValue();
+        logger.info("Calling FMP to get stock return on equity updates for symbol {}", symbol);
+        final Request request = new Request.Builder()
+          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
+          .method("GET", null)
+          .build();
+        return getResultAsLocalDateDoubleTreeMap(request, "returnOnEquity");
       }
     ));
   }
