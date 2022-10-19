@@ -113,7 +113,7 @@ public class FundamentalTradingDbFacade {
       .entrySet().stream().filter(entry -> !entry.getValue().isEmpty()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
-  public TreeMap<LocalDate, Double> getCachedTbReturns(String index, Instant from, Instant to) {
+  public TreeMap<LocalDate, Double> getCachedIndexPrices(String index, Instant from, Instant to) {
     return jdbi.withHandle(handle ->
       handle.createQuery("select * from APP.INDEX_PRICES where INDEX = :index and TIMESTAMP between :from and :to")
         .registerRowMapper(new DoubleMapper("PRICE"))

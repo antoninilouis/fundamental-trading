@@ -55,12 +55,7 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
     final var stockPrices = fundamentalTradingDbFacade.getCachedStockPrices(symbols, from, to);
-    final var periodsToFetch = stockPrices.entrySet().stream()
-      .filter(e -> e.getValue().lastKey().isBefore(LocalDate.ofInstant(to, ZoneId.of("America/New_York"))))
-      .collect(Collectors.toMap(
-        Map.Entry::getKey,
-        entry -> new AbstractMap.SimpleEntry<LocalDate, LocalDate>(entry.getValue().lastKey().plusDays(1), LocalDate.ofInstant(to, ZoneId.of("America/New_York"))))
-      );
+    final var periodsToFetch = getPeriodsToFetch(stockPrices, to);
     fmpService.getStockPricesUpdates(periodsToFetch).forEach((key, value) -> {
       stockPrices.get(key).putAll(value);
       fundamentalTradingDbFacade.insertStockPrices(key, value);
@@ -70,12 +65,17 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
-    return fundamentalTradingDbFacade.getCachedTbReturns(INDEX_NAME, from, to);
+    return fundamentalTradingDbFacade.getCachedIndexPrices(INDEX_NAME, from, to);
   }
 
   @Override
   protected TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
-    return fundamentalTradingDbFacade.getCachedTbReturns(from, to);
+    final var tbReturns = fundamentalTradingDbFacade.getCachedTbReturns(from, to);
+    final var periodToFetch = getPeriodToFetch(tbReturns, to);
+    final var tbReturnsUpdates = fmpService.getTbReturnsUpdates(periodToFetch);
+    fundamentalTradingDbFacade.insertTbReturns(tbReturnsUpdates);
+    tbReturns.putAll(tbReturnsUpdates);
+    return tbReturns;
   }
 
   @Override
@@ -91,5 +91,24 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to) {
     return fundamentalTradingDbFacade.getCachedStockDividendPayoutRatio(symbols, from, to);
+  }
+
+  private Map<String, AbstractMap.SimpleEntry<LocalDate, LocalDate>> getPeriodsToFetch(
+    Map<String, TreeMap<LocalDate, Double>> map,
+    Instant to
+  ) {
+    return map.entrySet().stream()
+      .filter(e -> e.getValue().lastKey().isBefore(LocalDate.ofInstant(to, ZoneId.of("America/New_York"))))
+      .collect(Collectors.toMap(
+        Map.Entry::getKey,
+        entry -> new AbstractMap.SimpleEntry<>(entry.getValue().lastKey().plusDays(1), LocalDate.ofInstant(to, ZoneId.of("America/New_York"))))
+      );
+  }
+
+  private AbstractMap.SimpleEntry<LocalDate, LocalDate> getPeriodToFetch(
+    TreeMap<LocalDate, Double> map,
+    Instant to
+  ) {
+    return new AbstractMap.SimpleEntry<>(map.lastKey().plusDays(1), LocalDate.ofInstant(to, ZoneId.of("America/New_York")));
   }
 }

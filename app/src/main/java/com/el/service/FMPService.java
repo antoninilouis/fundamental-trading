@@ -56,14 +56,7 @@ public class FMPService {
       .method("GET", null)
       .build();
     logger.info("Calling FMP to get prices of index {}", indexName);
-    final var jsonNode = extract(request);
-    return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
-      .collect(Collectors.toMap(
-        n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-        n -> Double.valueOf(n.get("close").toString()),
-        (o1, o2) -> o1,
-        TreeMap::new
-      ));
+    return getResultAsLocalDateDoubleTreeMap(request);
   }
 
   public Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
@@ -75,14 +68,7 @@ public class FMPService {
           .method("GET", null)
           .build();
         logger.info("Calling FMP to get stock prices for symbol {}", symbol);
-        final var jsonNode = extract(request);
-        return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
-          .collect(Collectors.toMap(
-            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-            n -> Double.valueOf(n.get("close").toString()),
-            (o1, o2) -> o1,
-            TreeMap::new
-          ));
+        return getResultAsLocalDateDoubleTreeMap(request);
       }
     ));
   }
@@ -99,21 +85,50 @@ public class FMPService {
           .method("GET", null)
           .build();
         logger.info("Calling FMP to get stock prices updates for symbol {}", symbol);
-        final var jsonNode = extract(request);
-        return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
-          .collect(Collectors.toMap(
-            n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-            n -> Double.valueOf(n.get("close").toString()),
-            (o1, o2) -> o1,
-            TreeMap::new
-          ));
+        return getResultAsLocalDateDoubleTreeMap(request);
       }
     ));
+  }
+
+  private TreeMap<LocalDate, Double> getResultAsLocalDateDoubleTreeMap(Request request) {
+    final var jsonNode = extract(request);
+    if (!jsonNode.has("historical")) {
+      return new TreeMap<>();
+    }
+    return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
+      .collect(Collectors.toMap(
+        n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
+        n -> Double.valueOf(n.get("close").toString()),
+        (o1, o2) -> o1,
+        TreeMap::new
+      ));
   }
 
   public TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
     var tmpFrom = LocalDate.ofInstant(from, ZoneId.of("America/New_York"));
     var tmpTo = LocalDate.ofInstant(to, ZoneId.of("America/New_York"));
+    var map = new TreeMap<LocalDate, Double>();
+    while (map.isEmpty() || map.firstKey().isAfter(tmpFrom)) {
+      final Request request = new Request.Builder()
+        .url(BASE_URL + "/v4/treasury/?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
+        .method("GET", null)
+        .build();
+      logger.info("Calling FMP to get TB returns");
+      final var jsonNode = extract(request);
+      if (jsonNode.isEmpty()) {
+        return map;
+      }
+      StreamSupport.stream(jsonNode.spliterator(), false)
+        .forEach(e -> map.put(LocalDate.parse(e.get("date").toString().replaceAll("\"", "")),
+          Double.valueOf(e.get("month3").toString())));
+      tmpTo = map.firstKey().minusDays(1);
+    }
+    return map;
+  }
+
+  public TreeMap<LocalDate, Double> getTbReturnsUpdates(AbstractMap.SimpleEntry<LocalDate, LocalDate> periodToFetch) {
+    var tmpFrom = periodToFetch.getKey();
+    var tmpTo = periodToFetch.getValue();
     var map = new TreeMap<LocalDate, Double>();
     while (map.isEmpty() || map.firstKey().isAfter(tmpFrom)) {
       final Request request = new Request.Builder()
