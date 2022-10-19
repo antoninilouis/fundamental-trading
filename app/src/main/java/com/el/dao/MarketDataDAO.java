@@ -7,6 +7,7 @@ import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindMethods;
 import org.jdbi.v3.sqlobject.statement.SqlBatch;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
+import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -40,6 +41,9 @@ public interface MarketDataDAO {
 
   @SqlBatch("insert into APP.STOCK_DIVIDEND_PAYOUT_RATIO (SYMBOL, TIMESTAMP, DIVIDEND_PAYOUT_RATIO) VALUES (:symbol, :dividendPayoutRatios.getKey, :dividendPayoutRatios.getValue)")
   int[] insertStockDividendPayoutRatios(@Bind("symbol") String symbol, @BindMethods("dividendPayoutRatios") Set<Map.Entry<LocalDate, Double>> dividendPayoutRatios);
+
+  @SqlUpdate("insert into APP.REFRESH_HISTORY (NAME, TIMESTAMP) VALUES (:name, :ts)")
+  void insertRefreshHistoryEntry(@Bind("name") String name, @Bind("ts") Instant now);
 
   /**
    * Important: db TIMESTAMP's represent ZonedDateTime for America/New_York, not Instants!

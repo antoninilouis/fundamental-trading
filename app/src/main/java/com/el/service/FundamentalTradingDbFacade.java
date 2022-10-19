@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import java.io.FileInputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -95,6 +96,22 @@ public class FundamentalTradingDbFacade {
     } catch (JdbiException e) {
       throw new RuntimeException(e.getMessage());
     }
+  }
+
+  public void insertRefreshHistoryEntry(String name) {
+    try {
+      jdbi.useExtension(MarketDataDAO.class, dao -> dao.insertRefreshHistoryEntry(name, Instant.now()));
+    } catch (JdbiException e) {
+      throw new RuntimeException(e.getMessage());
+    }
+  }
+
+  public Optional<Timestamp> getLatestRefreshTimestamp(final String name) {
+    return jdbi.withHandle(handle ->
+      handle.createQuery("select TIMESTAMP from APP.REFRESH_HISTORY where NAME = :name order by TIMESTAMP desc fetch first 1 rows only")
+        .bind("name", name)
+        .mapTo(Timestamp.class)
+        .findFirst());
   }
 
   public Map<String, TreeMap<LocalDate, Double>> getCachedStockPrices(Set<String> symbols, Instant from, Instant to) {

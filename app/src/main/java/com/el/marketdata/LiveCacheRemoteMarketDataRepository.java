@@ -5,9 +5,8 @@ import com.el.service.FundamentalTradingDbFacade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.sql.Timestamp;
+import java.time.*;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
@@ -55,64 +54,94 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
     final var stockPrices = fundamentalTradingDbFacade.getCachedStockPrices(symbols, from, to);
+    if (isUpdatedToday("STOCK_PRICES_CACHE")) {
+      logger.info("Skipping stock prices cache update.");
+      return stockPrices;
+    }
     final var periodsToFetch = getPeriodsToFetch(stockPrices, to);
     fmpService.getStockPricesUpdates(periodsToFetch).forEach((key, value) -> {
       stockPrices.get(key).putAll(value);
       fundamentalTradingDbFacade.insertStockPrices(key, value);
     });
+    fundamentalTradingDbFacade.insertRefreshHistoryEntry("STOCK_PRICES_CACHE");
     return stockPrices;
   }
 
   @Override
   protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
     final var indexPrices = fundamentalTradingDbFacade.getCachedIndexPrices(INDEX_NAME, from, to);
+    if (isUpdatedToday("INDEX_PRICES_CACHE")) {
+      logger.info("Skipping index prices cache update.");
+      return indexPrices;
+    }
     final var periodToFetch = getPeriodToFetch(indexPrices, to);
     final var indexPricesUpdates = fmpService.getIndexPricesUpdates(INDEX_NAME, periodToFetch);
     fundamentalTradingDbFacade.insertIndexPrices(INDEX_NAME, indexPricesUpdates);
     indexPrices.putAll(indexPricesUpdates);
+    fundamentalTradingDbFacade.insertRefreshHistoryEntry("INDEX_PRICES_CACHE");
     return indexPrices;
   }
 
   @Override
   protected TreeMap<LocalDate, Double> getTbReturns(Instant from, Instant to) {
     final var tbReturns = fundamentalTradingDbFacade.getCachedTbReturns(from, to);
+    if (isUpdatedToday("TB_RETURNS_CACHE")) {
+      logger.info("Skipping tb returns cache update.");
+      return tbReturns;
+    }
     final var periodToFetch = getPeriodToFetch(tbReturns, to);
     final var tbReturnsUpdates = fmpService.getTbReturnsUpdates(periodToFetch);
     fundamentalTradingDbFacade.insertTbReturns(tbReturnsUpdates);
     tbReturns.putAll(tbReturnsUpdates);
+    fundamentalTradingDbFacade.insertRefreshHistoryEntry("TB_RETURNS_CACHE");
     return tbReturns;
   }
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
     final var stockDividends = fundamentalTradingDbFacade.getCachedStockDividends(symbols, from, to);
+    if (isUpdatedToday("STOCK_DIVIDENDS_CACHE")) {
+      logger.info("Skipping stock dividends cache update.");
+      return stockDividends;
+    }
     final var periodsToFetch = getPeriodsToFetch(stockDividends, to);
     fmpService.getStockDividendsUpdates(periodsToFetch).forEach((key, value) -> {
       stockDividends.get(key).putAll(value);
       fundamentalTradingDbFacade.insertStockDividends(key, value);
     });
+    fundamentalTradingDbFacade.insertRefreshHistoryEntry("STOCK_DIVIDENDS_CACHE");
     return stockDividends;
   }
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockReturnOnEquity(Set<String> symbols, Instant from, Instant to) {
     final var stockReturnOnEquity = fundamentalTradingDbFacade.getCachedStockReturnOnEquity(symbols, from, to);
+    if (isUpdatedToday("STOCK_RETURN_ON_EQUITY_CACHE")) {
+      logger.info("Skipping stock return on equity update.");
+      return stockReturnOnEquity;
+    }
     final var periodsToFetch = getPeriodsToFetch(stockReturnOnEquity, to);
     fmpService.getStockReturnOnEquityUpdates(periodsToFetch).forEach((key, value) -> {
       stockReturnOnEquity.get(key).putAll(value);
       fundamentalTradingDbFacade.insertStockReturnOnEquity(key, value);
     });
+    fundamentalTradingDbFacade.insertRefreshHistoryEntry("STOCK_RETURN_ON_EQUITY_CACHE");
     return stockReturnOnEquity;
   }
 
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockDividendPayoutRatio(Set<String> symbols, Instant from, Instant to) {
     final var stockDividendPayoutRatio = fundamentalTradingDbFacade.getCachedStockDividendPayoutRatio(symbols, from, to);
+    if (isUpdatedToday("STOCK_DIVIDEND_PAYOUT_RATIO_CACHE")) {
+      logger.info("Skipping stock dividend payout ratio cache update.");
+      return stockDividendPayoutRatio;
+    }
     final var periodsToFetch = getPeriodsToFetch(stockDividendPayoutRatio, to);
     fmpService.getStockDividendPayoutRatioUpdates(periodsToFetch).forEach((key, value) -> {
       stockDividendPayoutRatio.get(key).putAll(value);
       fundamentalTradingDbFacade.insertStockDividendPayoutRatio(key, value);
     });
+    fundamentalTradingDbFacade.insertRefreshHistoryEntry("STOCK_DIVIDEND_PAYOUT_RATIO_CACHE");
     return stockDividendPayoutRatio;
   }
 
@@ -133,5 +162,16 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
     Instant to
   ) {
     return new AbstractMap.SimpleEntry<>(map.lastKey().plusDays(1), LocalDate.ofInstant(to, ZoneId.of("America/New_York")));
+  }
+
+  /**
+   * Returns true if the last refresh was after today at midnight for America/New_York
+   */
+  private boolean isUpdatedToday(final String name) {
+    final var todayMidnight = Timestamp.from(ZonedDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant());
+    return fundamentalTradingDbFacade.getLatestRefreshTimestamp(name)
+      // .filter(ts -> ts.after(Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))))
+      .filter(ts -> ts.after(todayMidnight))
+      .isPresent();
   }
 }
