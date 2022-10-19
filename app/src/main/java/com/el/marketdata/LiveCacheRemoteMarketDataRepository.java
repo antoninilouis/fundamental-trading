@@ -65,7 +65,12 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   @Override
   protected TreeMap<LocalDate, Double> getIndexPrices(Instant from, Instant to) {
-    return fundamentalTradingDbFacade.getCachedIndexPrices(INDEX_NAME, from, to);
+    final var indexPrices = fundamentalTradingDbFacade.getCachedIndexPrices(INDEX_NAME, from, to);
+    final var periodToFetch = getPeriodToFetch(indexPrices, to);
+    final var indexPricesUpdates = fmpService.getIndexPricesUpdates(INDEX_NAME, periodToFetch);
+    fundamentalTradingDbFacade.insertIndexPrices(INDEX_NAME, indexPricesUpdates);
+    indexPrices.putAll(indexPricesUpdates);
+    return indexPrices;
   }
 
   @Override

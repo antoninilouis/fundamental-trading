@@ -59,6 +59,17 @@ public class FMPService {
     return getResultAsLocalDateDoubleTreeMap(request);
   }
 
+  public TreeMap<LocalDate, Double> getIndexPricesUpdates(String indexName, AbstractMap.SimpleEntry<LocalDate, LocalDate> periodToFetch) {
+    final var from = periodToFetch.getKey();
+    final var to = periodToFetch.getValue();
+    final Request request = new Request.Builder()
+      .url(BASE_URL + "/v3/historical-price-full/%5E" + indexName + "?apikey=" + apikey + "&from=" + from + "&to=" + to)
+      .method("GET", null)
+      .build();
+    logger.info("Calling FMP to get prices updates of index {}", indexName);
+    return getResultAsLocalDateDoubleTreeMap(request);
+  }
+
   public Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
     return symbols.stream().collect(Collectors.toMap(
       Function.identity(),
@@ -135,7 +146,7 @@ public class FMPService {
         .url(BASE_URL + "/v4/treasury/?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
         .method("GET", null)
         .build();
-      logger.info("Calling FMP to get TB returns");
+      logger.info("Calling FMP to get TB returns updates");
       final var jsonNode = extract(request);
       if (jsonNode.isEmpty()) {
         return map;
