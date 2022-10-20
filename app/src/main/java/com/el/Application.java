@@ -1,6 +1,7 @@
 package com.el;
 
 import com.el.marketdata.LiveCacheRemoteMarketDataRepository;
+import com.el.service.AlpacaService;
 import com.el.stockselection.EquityScreener;
 
 import java.io.BufferedReader;
@@ -24,7 +25,9 @@ public class Application {
     final var es = new EquityScreener(marketDataRepository);
     final var selection = es.screenEquities();
     final var orp = new OptimalRiskyPortfolio(marketDataRepository, selection);
-    final var optimalAllocation = orp.calculate();
+    final var portfolio = orp.calculate();
+    final var alpacaService = new AlpacaService();
+    alpacaService.buyPortfolio(portfolio);
   }
 
   private static Set<String> extractSymbols(final String fileName) {

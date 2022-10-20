@@ -133,7 +133,7 @@ public class FMPService {
           Double.valueOf(e.get("month3").toString())));
       tmpTo = map.firstKey().minusDays(1);
     }
-    return null;
+    return map;
   }
 
   public Map<String, TreeMap<LocalDate, Double>> getStockDividends(Set<String> symbols, Instant from, Instant to) {
