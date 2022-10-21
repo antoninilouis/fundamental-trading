@@ -57,7 +57,7 @@ public class FMPService {
       .url(BASE_URL + "/v3/historical-price-full/%5E" + indexName + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
       .method("GET", null)
       .build();
-    return getResultAsLocalDateDoubleTreeMap(request, "close");
+    return getResultMap(request, "/historical", "close");
   }
 
   public TreeMap<LocalDate, Double> getIndexPricesUpdates(String indexName, AbstractMap.SimpleEntry<LocalDate, LocalDate> periodToFetch) {
@@ -68,7 +68,7 @@ public class FMPService {
       .url(BASE_URL + "/v3/historical-price-full/%5E" + indexName + "?apikey=" + apikey + "&from=" + from + "&to=" + to)
       .method("GET", null)
       .build();
-    return getResultAsLocalDateDoubleTreeMap(request, "close");
+    return getResultMap(request, "/historical", "close");
   }
 
   public Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
@@ -80,7 +80,7 @@ public class FMPService {
           .method("GET", null)
           .build();
         logger.info("Calling FMP to get stock prices for symbol {}", symbol);
-        return getResultAsLocalDateDoubleTreeMap(request, "close");
+        return getResultMap(request, "/historical", "close");
       }
     ));
   }
@@ -97,7 +97,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/historical-price-full/" + symbol + "?apikey=" + apikey + "&serietype=line&from=" + from + "&to=" + to)
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "close");
+        return getResultMap(request, "/historical", "close");
       }
     ));
   }
@@ -145,7 +145,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/historical-price-full/stock_dividend/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "dividend");
+        return getResultMap(request, "/historical", "dividend");
       }
     ));
   }
@@ -162,7 +162,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/historical-price-full/stock_dividend/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "dividend");
+        return getResultMap(request, "/historical", "dividend");
       }
     ));
   }
@@ -176,7 +176,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "returnOnEquity");
+        return getResultMap(request, "", "returnOnEquity");
       }
     ));
   }
@@ -193,7 +193,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "returnOnEquity");
+        return getResultMap(request, "", "returnOnEquity");
       }
     ));
   }
@@ -207,7 +207,7 @@ public class FMPService {
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "dividendPayoutRatio");
+        return getResultMap(request, "", "dividendPayoutRatio");
       }
     ));
   }
@@ -224,21 +224,22 @@ public class FMPService {
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
           .method("GET", null)
           .build();
-        return getResultAsLocalDateDoubleTreeMap(request, "dividendPayoutRatio");
+        return getResultMap(request, "", "dividendPayoutRatio");
       }
     ));
   }
 
-  private TreeMap<LocalDate, Double> getResultAsLocalDateDoubleTreeMap(final Request request, String property) {
+  private TreeMap<LocalDate, Double> getResultMap(final Request request, final String ptrExpr, final String property) {
     final var jsonNode = extract(request);
-    if (!jsonNode.has("historical")) {
+
+    if (jsonNode.at(ptrExpr).isEmpty()) {
       return new TreeMap<>();
     }
-    return StreamSupport.stream(jsonNode.get("historical").spliterator(), false)
+    return StreamSupport.stream(jsonNode.at(ptrExpr).spliterator(), false)
       .filter(n -> n.get("date") != null && n.get(property) != null)
       .collect(Collectors.toMap(
         n -> LocalDate.parse(n.get("date").toString().replaceAll("\"", "")),
-        n -> Double.valueOf(n.get(property).toString()),
+        n -> n.get(property).asDouble(),
         (o1, o2) -> o1,
         TreeMap::new
       ));
