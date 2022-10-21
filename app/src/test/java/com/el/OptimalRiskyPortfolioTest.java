@@ -27,8 +27,10 @@ import static java.lang.Math.pow;
 class OptimalRiskyPortfolioTest {
 
   private static final Logger logger = LoggerFactory.getLogger(OptimalRiskyPortfolioTest.class);
+  // Dataset start and end dates (inclusive)
   private static final LocalDate BACKTEST_START_DATE = LocalDate.of(2015, 12, 1);
   private static final LocalDate BACKTEST_END_DATE = LocalDate.of(2022, 9, 1);
+  // Trading start date (inclusive)
   private static final LocalDate BACKTEST_CURRENT_DATE = LocalDate.of(2019, 1, 3);
   private static final Double STARTING_CAPITAL = 10_000.0;
 
@@ -100,6 +102,9 @@ class OptimalRiskyPortfolioTest {
     CacheRemoteMarketDataService.fillStockDividendPayoutRatio(extractSymbols("symbols.txt"));
   }
 
+  /**
+   * Before running, verify that all data for [BACKTEST_START_DATE, BACKTEST_END_DATE] is present in cache db
+   */
   @Test
   @Disabled
   public void backtestWithNasdaq100RemoteMarketDataAndCache() {
@@ -120,7 +125,7 @@ class OptimalRiskyPortfolioTest {
     int tradedDays = 0;
     long totalDays = 0;
 
-    for (LocalDate i = BACKTEST_CURRENT_DATE; i.isBefore(BACKTEST_CURRENT_DATE.plusDays(1200)); i = i.plusDays(1)) {
+    for (LocalDate i = BACKTEST_CURRENT_DATE; i.isBefore(BACKTEST_END_DATE.plusDays(1)); i = i.plusDays(1)) {
       final LocalDate day = i;
       final var selection = es.screenEquities();
       final var stockReturns = marketDataRepository.getNewStockReturns(selection);
@@ -137,8 +142,8 @@ class OptimalRiskyPortfolioTest {
       }
 
       final var orp = new OptimalRiskyPortfolio(marketDataRepository, selection);
-      var allocation = orp.calculate();
-      allocation = allocation.entrySet().stream()
+      final var allocation = orp.calculate();
+      final var eodAllocation = allocation.entrySet().stream()
         .collect(Collectors.toMap(
           Map.Entry::getKey,
           entry -> {
@@ -150,10 +155,10 @@ class OptimalRiskyPortfolioTest {
           }
         ));
       final var oldPortfolioValue = portfolioValue;
-      portfolioValue = oldPortfolioValue + allocation.values().stream().mapToDouble(d -> d * oldPortfolioValue).sum();
+      portfolioValue = oldPortfolioValue + eodAllocation.values().stream().mapToDouble(d -> d * oldPortfolioValue).sum();
       totalDays = ChronoUnit.DAYS.between(BACKTEST_CURRENT_DATE, day);
 
-      System.out.println(allocation.entrySet());
+      System.out.println(eodAllocation.entrySet());
       System.out.printf(
         "Date: %s(%s/%s), Value: %s, Benefit: %.2f$ (%.2f$), Rate (d): %.3f%n%n",
         day,

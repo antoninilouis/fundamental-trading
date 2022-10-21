@@ -13,11 +13,11 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
- * As part of this naive cache implementation:
- * - any record in cache is interpreted as if ALL the data for that metric and symbol is in cache and so needs not be fetched
- * - any missing cache record causes all the data for that metric and symbol to be fetched but NOT SAVED in cache
+ * Before use, fill the cache for the entire backtest period e.g. using CacheRemoteMarketDataService to limit api calls
  *
- * Before use, fill the cache for the backtest period e.g. using CacheRemoteMarketDataService to limit api calls
+ * As part of this naive cache implementation:
+ * Any record in cache is interpreted as if ALL the data for that metric and symbol is in cache and so needs not be fetched
+ * In the absence of a record, all the data for that metric and symbol is fetched but NOT SAVED in cache
  */
 public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
@@ -35,11 +35,6 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
     initialize(from, to);
   }
 
-  /**
-   * The cache stores data for the cache period [MIN_DATE, MAX_DATE]
-   * All symbols present in cache have all available data for the cache period
-   * @return stock prices retrieved from cache or from remote source if not present in cache
-   */
   @Override
   protected Map<String, TreeMap<LocalDate, Double>> getStockPrices(Set<String> symbols, Instant from, Instant to) {
     final var stockPrices = fundamentalTradingDbFacade.getCachedStockPrices(symbols, from, to);
