@@ -173,6 +173,7 @@ public class FMPService {
       symbol -> {
         logger.info("Calling FMP to get stock return on equity for symbol {}", symbol);
         final Request request = new Request.Builder()
+          // fixme: remove from and to arguments that don't exist
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
           .build();
@@ -190,10 +191,13 @@ public class FMPService {
         final var tmpTo = entry.getValue().getValue();
         logger.info("Calling FMP to get stock return on equity updates for symbol {}", symbol);
         final Request request = new Request.Builder()
-          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
+          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey)
           .method("GET", null)
           .build();
-        return getResultMap(request, "", "returnOnEquity");
+        final var res = getResultMap(request, "", "returnOnEquity");
+        return res.entrySet().stream()
+          .filter(resEntry -> resEntry.getKey().isAfter(tmpFrom.minusDays(1)) && resEntry.getKey().isBefore(tmpTo.plusDays(1)))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
       }
     ));
   }
@@ -203,6 +207,7 @@ public class FMPService {
       Function.identity(),
       symbol -> {
         logger.info("Calling FMP to get stock dividend payout ratios for symbol {}", symbol);
+        // fixme: remove from and to arguments that don't exist
         final Request request = new Request.Builder()
           .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + LocalDate.ofInstant(from, ZoneId.of("America/New_York")) + "&to=" + LocalDate.ofInstant(to, ZoneId.of("America/New_York")))
           .method("GET", null)
@@ -221,10 +226,13 @@ public class FMPService {
         final var tmpTo = entry.getValue().getValue();
         logger.info("Calling FMP to get stock dividend payout ratios updates for symbol {}", symbol);
         final Request request = new Request.Builder()
-          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey + "&from=" + tmpFrom + "&to=" + tmpTo)
+          .url(BASE_URL + "/v3/ratios/" + symbol + "?apikey=" + apikey)
           .method("GET", null)
           .build();
-        return getResultMap(request, "", "dividendPayoutRatio");
+        final var res = getResultMap(request, "", "dividendPayoutRatio");
+        return res.entrySet().stream()
+          .filter(resEntry -> resEntry.getKey().isAfter(tmpFrom.minusDays(1)) && resEntry.getKey().isBefore(tmpTo.plusDays(1)))
+          .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (o1, o2) -> o1, TreeMap::new));
       }
     ));
   }
