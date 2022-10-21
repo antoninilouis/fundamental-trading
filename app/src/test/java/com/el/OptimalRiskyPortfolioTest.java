@@ -1,9 +1,6 @@
 package com.el;
 
-import com.el.marketdata.CacheRemoteMarketDataRepository;
-import com.el.marketdata.LocalMarketDataRepository;
-import com.el.marketdata.MarketDataRepository;
-import com.el.marketdata.RemoteMarketDataRepository;
+import com.el.marketdata.*;
 import com.el.service.CacheRemoteMarketDataService;
 import com.el.stockselection.EquityScreener;
 import org.junit.jupiter.api.Disabled;

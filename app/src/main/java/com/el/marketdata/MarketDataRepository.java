@@ -115,7 +115,8 @@ public abstract class MarketDataRepository {
       reg.getSlope(),
       reg.getIntercept(),
       reg.getSumSquaredErrors(),
-      reg.getMeanSquareError()
+      reg.getMeanSquareError(),
+      reg.getN()
     ));
   }
 

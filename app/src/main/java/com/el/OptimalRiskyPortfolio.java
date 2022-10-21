@@ -33,6 +33,7 @@ public class OptimalRiskyPortfolio {
     var regressionResults = marketDataRepository.getStockRegressionResults(selection);
 
     // 1) Calculate the initial weight of each stock in the active portfolio
+    // Ref: https://www.xycoon.com/SumOfSquares.htm
     var initialWeights = regressionResults.entrySet().stream()
       .collect(Collectors.toMap(
         Entry::getKey,
