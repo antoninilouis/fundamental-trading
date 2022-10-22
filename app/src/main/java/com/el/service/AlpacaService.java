@@ -16,7 +16,8 @@ import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.ZonedDateTime;
+import java.time.*;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,9 +36,8 @@ public class AlpacaService {
   private final AlpacaAPI alpacaAPI = new AlpacaAPI();
   private final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("fundamental-tradingDB");
 
-  public void buyPortfolio(Map<String, Double> portfolio) {
+  public void buyPortfolio(final Map<String, Double> portfolio, final Double cash) {
     try {
-      var cash = getCash();
       showExpectedPositions(portfolio, cash);
       portfolio.entrySet().stream()
         .filter(entry -> entry.getValue() >= 0)
@@ -46,6 +46,7 @@ public class AlpacaService {
             final var symbol = entry.getKey().equals("GSPC") ? "SPY" : entry.getKey();
             final var optBar = getStockBar(symbol);
 
+            // todo: log if order could not be placed because of missing bar
             optBar.map(bar -> {
               final var price = bar.getClose();
               final var quantity = (cash * entry.getValue()) / price;
@@ -56,7 +57,7 @@ public class AlpacaService {
             throw new RuntimeException(e);
           }
         });
-    } catch (AlpacaClientException | JsonProcessingException e) {
+    } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
   }
@@ -94,22 +95,23 @@ public class AlpacaService {
     }
   }
 
-  private Double getCash() throws AlpacaClientException {
+  public Double getCash() throws AlpacaClientException {
     Account account = alpacaAPI.account().get();
     return Double.valueOf(account.getCash());
   }
 
-  private Optional<StockBar> getStockBar(String symbol) throws AlpacaClientException {
-    return alpacaAPI.stockMarketData().getBars(
-      symbol,
-      ZonedDateTime.now().minusHours(2),
-      ZonedDateTime.now().minusHours(1),
+  public Optional<StockBar> getStockBar(final String symbol) throws AlpacaClientException {
+    final var response = alpacaAPI.stockMarketData().getBars(
+      symbol.equals("GSPC") ? "SPY" : symbol,
+      Instant.now().minus(24, ChronoUnit.HOURS).atZone(ZoneId.of("America/New_York")),
+      Instant.now().minus(1, ChronoUnit.HOURS).atZone(ZoneId.of("America/New_York")),
       null,
       null,
       1,
       BarTimePeriod.HOUR,
       BarAdjustment.SPLIT,
       null
-    ).getBars().stream().findFirst();
+    );
+    return Optional.ofNullable(response.getBars().get(response.getBars().size() - 1));
   }
 }

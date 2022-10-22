@@ -3,6 +3,7 @@ package com.el;
 import com.el.marketdata.LiveCacheRemoteMarketDataRepository;
 import com.el.service.AlpacaService;
 import com.el.stockselection.EquityScreener;
+import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.util.Set;
 
 public class Application {
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws AlpacaClientException {
     final var marketDataRepository = new LiveCacheRemoteMarketDataRepository(
       extractSymbols("symbols.txt"),
       ZonedDateTime.of(LocalDate.of(2015, 12, 1), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant()
@@ -25,9 +26,10 @@ public class Application {
     final var es = new EquityScreener(marketDataRepository);
     final var selection = es.screenEquities();
     final var orp = new OptimalRiskyPortfolio(marketDataRepository, selection);
-    final var portfolio = orp.calculate();
     final var alpacaService = new AlpacaService();
-    alpacaService.buyPortfolio(portfolio);
+    final var cash = alpacaService.getCash();
+    final var portfolio = orp.calculateWithErrorLimit(cash, 0.2);
+    alpacaService.buyPortfolio(portfolio, cash);
   }
 
   private static Set<String> extractSymbols(final String fileName) {

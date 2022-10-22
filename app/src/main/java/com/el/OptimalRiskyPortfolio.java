@@ -1,8 +1,13 @@
 package com.el;
 
-import com.el.marketdata.MarketDataRepository;
 import com.el.financeutils.CAPM;
+import com.el.marketdata.MarketDataRepository;
+import com.el.service.AlpacaService;
+import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.util.Precision;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -14,12 +19,54 @@ import static java.util.Map.Entry;
 
 public class OptimalRiskyPortfolio {
 
+  final private Logger logger = LoggerFactory.getLogger(OptimalRiskyPortfolio.class);
+  final private AlpacaService alpacaService = new AlpacaService();
   final private MarketDataRepository marketDataRepository;
   final private Set<String> selection;
 
   public OptimalRiskyPortfolio(MarketDataRepository marketDataRepository, Set<String> selection) {
     this.marketDataRepository = marketDataRepository;
     this.selection = selection;
+  }
+
+  public Map<String, Double> calculateWithErrorLimit(final Double cash, final Double errorLimit) {
+    for (int i = 0; i < 5; i++) {
+      final var allocation = calculate();
+      allocation.entrySet().stream()
+        .filter(e -> e.getValue() < 0)
+        .forEach(entry -> {
+          try {
+            final var optBar = alpacaService.getStockBar(entry.getKey());
+
+            optBar.ifPresent(bar -> {
+              final var notional = entry.getValue() * cash;
+              final var price = bar.getClose();
+
+              // calculate notional remainder
+              final var remainder = Math.abs(notional % price);
+
+              // e.g price=140 cash=300 e=min(20, 120) => excess of 20$
+              // e.g price=300 cash=200 e=min(200, 100) => lack of 100$
+              final var e = Math.min(remainder, price - remainder);
+              final var error = e / notional;
+
+              if (!Precision.equals(error, 0.0, errorLimit)) {
+                logger.warn("Excluding {} due to fractional share error: {}, price: {}, notional: {}", entry.getKey(), error, price, notional);
+                selection.remove(entry.getKey());
+              } else {
+                logger.warn("Allowing {} despite fractional share error: {}", entry.getKey(), error);
+              }
+            });
+          } catch (AlpacaClientException e) {
+            throw new RuntimeException(e);
+          }
+        }
+      );
+      if (allocation.keySet().size() - 1 == selection.size()) {
+        return allocation;
+      }
+    }
+    throw new RuntimeException("Couldn't compute allocation after 5 tries.");
   }
 
   public Map<String, Double> calculate() {
