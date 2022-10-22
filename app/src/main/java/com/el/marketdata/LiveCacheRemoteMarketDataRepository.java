@@ -5,8 +5,10 @@ import com.el.service.FundamentalTradingDbFacade;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.sql.Timestamp;
-import java.time.*;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
@@ -168,10 +170,9 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
    * Returns true if the last refresh was after today at midnight for America/New_York
    */
   private boolean isUpdatedToday(final String name) {
-    final var todayMidnight = Timestamp.from(ZonedDateTime.of(LocalDate.now(), LocalTime.MIDNIGHT, ZoneId.of("America/New_York")).toInstant());
+    final var dayStartInNY = Instant.now().atZone(ZoneId.of("America/New_York")).truncatedTo(ChronoUnit.DAYS).toInstant();
     return fundamentalTradingDbFacade.getLatestRefreshTimestamp(name)
-      // .filter(ts -> ts.after(Timestamp.from(Instant.now().truncatedTo(ChronoUnit.DAYS))))
-      .filter(ts -> ts.after(todayMidnight))
+      .filter(ts -> ts.toInstant().isAfter(dayStartInNY))
       .isPresent();
   }
 }
