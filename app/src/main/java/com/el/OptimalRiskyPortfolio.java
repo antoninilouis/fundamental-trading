@@ -29,7 +29,7 @@ public class OptimalRiskyPortfolio {
     this.selection = selection;
   }
 
-  public Map<String, Double> calculateWithErrorLimit(final Double cash, final Double errorLimit) {
+  public Map<String, Double> calculateWithAdjustment(final Double cash, final Double maxAdjustment) {
     for (int i = 0; i < 5; i++) {
       final var allocation = calculate();
       allocation.entrySet().stream()
@@ -41,20 +41,21 @@ public class OptimalRiskyPortfolio {
             optBar.ifPresent(bar -> {
               final var notional = entry.getValue() * cash;
               final var price = bar.getClose();
+              final var quantity = notional / price;
 
-              // calculate notional remainder
-              final var remainder = Math.abs(notional % price);
+              // e.g notional=-300.0 price=140.0 quantity=-2.14 adjQuantity=-2 adjNotional=-280.0
+              // e.g notional=-200.0 price=300.0 quantity=-0.66 adjQuantity=-1 adjNotional=-300.0
+              final var adjQuantity = Math.round(quantity);
+              final var adjNotional = adjQuantity * price;
+              final var adjAlloc = adjNotional / cash;
+              final var adjustment = (notional - adjNotional) / notional;
 
-              // e.g price=140 cash=300 e=min(20, 120) => excess of 20$
-              // e.g price=300 cash=200 e=min(200, 100) => lack of 100$
-              final var e = Math.min(remainder, price - remainder);
-              final var error = e / notional;
-
-              if (!Precision.equals(error, 0.0, errorLimit)) {
-                logger.warn("Excluding {} due to fractional share error: {}, price: {}, notional: {}", entry.getKey(), error, price, notional);
+              if (!Precision.equals(adjustment, 0.0, maxAdjustment)) {
+                logger.warn("Exclude {} required adjustment too big: {}, notional: {}, price: {}", entry.getKey(), adjustment, price, notional);
                 selection.remove(entry.getKey());
               } else {
-                logger.warn("Allowing {} despite fractional share error: {}", entry.getKey(), error);
+                logger.warn("Include {} with required adjustment: {}, alloc: {}, adjusted: {}", entry.getKey(), adjustment, entry.getValue(), adjAlloc);
+                entry.setValue(adjAlloc);
               }
             });
           } catch (AlpacaClientException e) {

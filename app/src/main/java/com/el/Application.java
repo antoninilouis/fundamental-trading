@@ -28,7 +28,7 @@ public class Application {
     final var orp = new OptimalRiskyPortfolio(marketDataRepository, selection);
     final var alpacaService = new AlpacaService();
     final var cash = alpacaService.getCash();
-    final var portfolio = orp.calculateWithErrorLimit(cash, 0.2);
+    final var portfolio = orp.calculateWithAdjustment(cash, 0.2);
     alpacaService.buyPortfolio(portfolio, cash);
   }
 

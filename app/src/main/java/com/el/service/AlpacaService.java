@@ -24,10 +24,14 @@ import java.util.stream.Collectors;
 
 /**
  * Fixme:
- * 1. Alpaca doesn't support fractional short orders
- * 2. No order placement error handling
- * 3. No price validation with db values
- * 4. No positions verification
+ * 1. No order placement error handling
+ * 2. No price validation with db values
+ * 3. No positions verification
+ *
+ * Todo: create tool to avoid PDT flagging
+ *  each trade day alternates between B (Buying) day and S (Selling) day (B-S-B-S and so on)
+ *  the tool uses a strategy to determine best time to buy or sell on a B or S day respectively
+ *  a possible strategy is to compute Bollinger bands of the portfolio and buy or sell when it hits the low or high band during a trade day
  */
 public class AlpacaService {
 
@@ -39,24 +43,31 @@ public class AlpacaService {
   public void buyPortfolio(final Map<String, Double> portfolio, final Double cash) {
     try {
       showExpectedPositions(portfolio, cash);
-      portfolio.entrySet().stream()
-        .filter(entry -> entry.getValue() >= 0)
-        .forEach(entry -> {
-          try {
-            final var symbol = entry.getKey().equals("GSPC") ? "SPY" : entry.getKey();
-            final var optBar = getStockBar(symbol);
+      portfolio.forEach((key, value) -> {
+        try {
+          final var symbol = key.equals("GSPC") ? "SPY" : key;
+          final var optBar = getStockBar(symbol);
 
-            // todo: log if order could not be placed because of missing bar
-            optBar.map(bar -> {
-              final var price = bar.getClose();
-              final var quantity = (cash * entry.getValue()) / price;
-              logger.info("BUY \\{symbol: {}, price: {}, quantity: {}\\}", symbol, price, quantity);
-              return buyStock(symbol, quantity);
-            });
-          } catch (AlpacaClientException e) {
-            throw new RuntimeException(e);
+          if (optBar.isEmpty()) {
+            throw new RuntimeException("Order could not be placed because of missing bar for symbol %s".formatted(symbol));
           }
-        });
+
+          optBar.map(bar -> {
+            final var price = bar.getClose();
+            if (value >= 0.0) {
+              final var quantity = (cash * value) / price;
+              logger.info("BUY {symbol: {}, price: {}, quantity: {}}", symbol, price, quantity);
+              return buyStock(symbol, quantity);
+            } else {
+              final var quantity = (double) Math.round((cash * value) / price);
+              logger.info("SELL {symbol: {}, price: {}, quantity: {}}", symbol, price, quantity);
+              return sellStock(symbol, quantity);
+            }
+          });
+        } catch (AlpacaClientException e) {
+          throw new RuntimeException(e);
+        }
+      });
     } catch (JsonProcessingException e) {
       throw new RuntimeException(e);
     }
@@ -77,6 +88,31 @@ public class AlpacaService {
         quantity,
         null,
         OrderSide.BUY,
+        OrderType.MARKET,
+        OrderTimeInForce.DAY,
+        null,
+        null,
+        null,
+        null,
+        false,
+        null,
+        OrderClass.SIMPLE,
+        null,
+        null,
+        null
+      );
+    } catch (AlpacaClientException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private Order sellStock(String symbol, Double quantity) {
+    try {
+      return alpacaAPI.orders().requestOrder(
+        symbol,
+        quantity,
+        null,
+        OrderSide.SELL,
         OrderType.MARKET,
         OrderTimeInForce.DAY,
         null,
