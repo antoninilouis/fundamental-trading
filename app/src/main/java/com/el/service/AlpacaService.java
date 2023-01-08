@@ -16,7 +16,8 @@ import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.*;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
@@ -27,11 +28,6 @@ import java.util.stream.Collectors;
  * 1. No order placement error handling
  * 2. No price validation with db values
  * 3. No positions verification
- *
- * Todo: create tool to avoid PDT flagging
- *  each trade day alternates between B (Buying) day and S (Selling) day (B-S-B-S and so on)
- *  the tool uses a strategy to determine best time to buy or sell on a B or S day respectively
- *  a possible strategy is to compute Bollinger bands of the portfolio and buy or sell when it hits the low or high band during a trade day
  */
 public class AlpacaService {
 
@@ -39,6 +35,24 @@ public class AlpacaService {
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AlpacaAPI alpacaAPI = new AlpacaAPI();
   private final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("fundamental-tradingDB");
+
+  /**
+   * Tool to avoid PDT flagging
+   * each trade day alternates between B (Buying) day and S (Selling) day (B-S-B-S and so on)
+   * the tool uses a strategy to determine best time to buy or sell on a B or S day respectively
+   * a possible strategy is to compute Bollinger bands of the portfolio and buy or sell when it hits the low or high band during a trade day
+   *
+   * Determine when lower bolling band for this portfolio is hit today, refresh every 15min
+   */
+  public void atBestEntryPoint(Map<String, Double> portfolio, Runnable callback) {
+//    final var queue = new CircularFifoQueue<>(20);
+//    queue.add()
+//
+//    double[] values = ArrayUtils.toPrimitive(queue.toArray(new Double[0]));
+//    StatUtils.mean(values, 0, 20);
+
+    callback.run();
+  }
 
   public void buyPortfolio(final Map<String, Double> portfolio, final Double cash) {
     try {
@@ -59,7 +73,7 @@ public class AlpacaService {
               logger.info("BUY {symbol: {}, price: {}, quantity: {}}", symbol, price, quantity);
               return buyStock(symbol, quantity);
             } else {
-              final var quantity = (double) Math.round((cash * value) / price);
+              final var quantity = (double) Math.abs(Math.round((cash * value) / price));
               logger.info("SELL {symbol: {}, price: {}, quantity: {}}", symbol, price, quantity);
               return sellStock(symbol, quantity);
             }

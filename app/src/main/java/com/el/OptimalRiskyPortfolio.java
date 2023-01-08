@@ -15,6 +15,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.lang.Math.pow;
+import static java.lang.Math.sqrt;
 import static java.util.Map.Entry;
 
 public class OptimalRiskyPortfolio {
@@ -130,6 +131,7 @@ public class OptimalRiskyPortfolio {
     // 2.1) Calculate the expected risk premium for the portfolio
     double marketWeight = 1.0 - portfolioFinalWeight;
     double expectedRiskPremium = portfolioFinalWeight * portfolioWeightedAlphas + (marketWeight + portfolioWeightedAlphas * portfolioWeightedBeta) * erm;
+    double portfolioVariance = pow(marketWeight + portfolioWeightedBeta * portfolioFinalWeight, 2) * marketVariance + pow(portfolioFinalWeight * sqrt(portfolioResidualVariance), 2);
 
     optimalAllocation.put(MarketDataRepository.INDEX_NAME, marketWeight);
     return optimalAllocation;

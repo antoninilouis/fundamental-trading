@@ -29,7 +29,9 @@ public class Application {
     final var alpacaService = new AlpacaService();
     final var cash = alpacaService.getCash();
     final var portfolio = orp.calculateWithAdjustment(cash, 0.2);
-    alpacaService.buyPortfolio(portfolio, cash);
+    alpacaService.atBestEntryPoint(portfolio, () -> {
+      alpacaService.buyPortfolio(portfolio, cash);
+    });
   }
 
   private static Set<String> extractSymbols(final String fileName) {
