@@ -2,9 +2,18 @@ package com.el;
 
 import com.el.marketdata.LiveCacheRemoteMarketDataRepository;
 import com.el.service.AlpacaService;
+import com.el.servlets.HealthCheckServlet;
+import com.el.servlets.ReallocateServlet;
 import com.el.stockselection.EquityScreener;
 import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 import org.apache.commons.cli.*;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -18,12 +27,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class Application {
+  final private Logger logger = LoggerFactory.getLogger(Application.class);
 
   public static void main(String[] args) throws AlpacaClientException {
     Options options = new Options();
 
     Option db = new Option("d", "database", true, "derby database path");
     options.addOption(db);
+
+    Option server = new Option("s", "server", false, "run in server mode");
+    options.addOption(server);
 
     Option dryrun = new Option("t", "dryrun", false, "run without calls to trading API");
     options.addOption(dryrun);
@@ -41,11 +54,43 @@ public class Application {
       System.exit(1);
     }
 
-    run(cmd);
+    try {
+      run(cmd);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
-  private static void run(final CommandLine cmd) throws AlpacaClientException {
+  private static void run(CommandLine cmd) throws Exception {
     final var dbpath = cmd.getOptionValue("database");
+
+    if (cmd.hasOption("dryrun")) {
+      runOnce(dbpath);
+    }
+
+    if (cmd.hasOption("server")) {
+      startServer(dbpath);
+    }
+  }
+
+  private static void startServer(String dbpath) throws Exception {
+    final var server = new Server();
+    try (ServerConnector connector = new ServerConnector(server)) {
+      connector.setPort(5000);
+      server.setConnectors(new Connector[]{connector});
+
+      ServletHandler servletHandler = new ServletHandler();
+      servletHandler.addServletWithMapping(HealthCheckServlet.class, "/");
+      final var runServlet = new ReallocateServlet(dbpath);
+      servletHandler.addServletWithMapping(new ServletHolder(runServlet), "/reallocate");
+
+      server.setHandler(servletHandler);
+      server.start();
+      server.join();
+    }
+  }
+
+  public static void runOnce(final String dbpath) throws AlpacaClientException {
     final var marketDataRepository = new LiveCacheRemoteMarketDataRepository(
       dbpath,
       extractSymbols("symbols.txt"),
@@ -58,10 +103,6 @@ public class Application {
     final var alpacaService = new AlpacaService();
     final var cash = alpacaService.getCash();
     final var portfolio = orp.calculateWithAdjustment(cash, 0.2);
-
-    if (cmd.hasOption("dryrun")) {
-      return;
-    }
 
     alpacaService.atBestEntryPoint(portfolio, () -> {
       alpacaService.sellPortfolio();

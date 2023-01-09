@@ -5,6 +5,7 @@
 3. Nasdaq-100 backtest with remote + cache data from FMP
 4. (optional) IEX backtest (3k symbols) with remote data from FMP
 5. Alpaca trading
+6. Web admin interface
 
 ### Model
 Optimal Risky Portfolio using a Single Index Model 
