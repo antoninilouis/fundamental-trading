@@ -11,7 +11,6 @@ import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -27,16 +26,16 @@ public class FundamentalTradingDbFacade {
   private static final Logger logger = LoggerFactory.getLogger(FundamentalTradingDbFacade.class);
   private final Jdbi jdbi;
 
-  public FundamentalTradingDbFacade(final String dbName) {
+  public FundamentalTradingDbFacade() {
     try {
       final Properties appProps = new Properties();
-      final String appConfigPath = Objects.requireNonNull(getClass().getClassLoader().getResource("fundamental-tradingDB.properties")).getPath();
 
-      appProps.load(new FileInputStream(appConfigPath));
+      appProps.load(FundamentalTradingDbFacade.class.getResourceAsStream("/fundamental-tradingDB.properties"));
 
       final var user = appProps.getProperty("user");
       final var pwd = appProps.getProperty("password");
-      this.jdbi = Jdbi.create("jdbc:derby:/Users/louisantonini/Workspace/fundamental-trading/" + dbName, user, pwd);
+      final var dbpath = appProps.getProperty("dbpath");
+      this.jdbi = Jdbi.create("jdbc:derby:" + dbpath + ";create=true", user, pwd);
       jdbi.installPlugin(new SqlObjectPlugin());
       jdbi.setSqlLogger(new Slf4JSqlLogger(logger));
     } catch (Exception e) {

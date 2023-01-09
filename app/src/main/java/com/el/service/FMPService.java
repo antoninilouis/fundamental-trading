@@ -9,7 +9,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -31,9 +30,8 @@ public class FMPService {
     client = new OkHttpClient();
     try {
       final Properties appProps = new Properties();
-      final String appConfigPath = Objects.requireNonNull(getClass().getClassLoader().getResource("fmp.properties")).getPath();
 
-      appProps.load(new FileInputStream(appConfigPath));
+      appProps.load(FMPService.class.getResourceAsStream("/fmp.properties"));
       this.apikey = appProps.getProperty("apikey");
     } catch (IOException e) {
       throw new RuntimeException(e);

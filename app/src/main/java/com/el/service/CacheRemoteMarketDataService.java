@@ -11,7 +11,7 @@ public class CacheRemoteMarketDataService {
 
   private static final Logger logger = LoggerFactory.getLogger(CacheRemoteMarketDataService.class);
   private static final FMPService fmpService = new FMPService();
-  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("fundamental-tradingDB");
+  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
   private static final LocalDate MIN_DATE = LocalDate.of(2012, 1, 1);
   private static final LocalDate MAX_DATE = LocalDate.of(2022, 9, 1);
 

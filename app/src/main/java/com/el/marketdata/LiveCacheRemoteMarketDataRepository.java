@@ -27,7 +27,7 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   private static final Logger logger = LoggerFactory.getLogger(LiveCacheRemoteMarketDataRepository.class);
   private static final FMPService fmpService = new FMPService();
-  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("live-fundamental-tradingDB");
+  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
   private final LocalDate oldestRecord;
   private LocalDate latestRefresh;
 

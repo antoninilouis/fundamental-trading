@@ -23,7 +23,7 @@ public class CacheRemoteMarketDataRepository extends MarketDataRepository {
 
   private static final Logger logger = LoggerFactory.getLogger(CacheRemoteMarketDataRepository.class);
   private static final FMPService fmpService = new FMPService();
-  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("fundamental-tradingDB");
+  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
 
   public CacheRemoteMarketDataRepository(
     final Set<String> symbols,

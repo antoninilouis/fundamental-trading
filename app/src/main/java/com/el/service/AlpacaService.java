@@ -34,7 +34,7 @@ public class AlpacaService {
   private final Logger logger = LoggerFactory.getLogger(AlpacaService.class);
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AlpacaAPI alpacaAPI = new AlpacaAPI();
-  private final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade("fundamental-tradingDB");
+  private final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
 
   /**
    * Tool to avoid PDT flagging
@@ -83,6 +83,14 @@ public class AlpacaService {
         }
       });
     } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void sellPortfolio() {
+    try {
+      alpacaAPI.positions().closeAll(true);
+    } catch (AlpacaClientException e) {
       throw new RuntimeException(e);
     }
   }
@@ -162,6 +170,9 @@ public class AlpacaService {
       BarAdjustment.SPLIT,
       null
     );
+    if (response.getBars() == null) {
+      return Optional.empty();
+    }
     return Optional.ofNullable(response.getBars().get(response.getBars().size() - 1));
   }
 }
