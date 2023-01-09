@@ -25,7 +25,7 @@ public class Application {
     Option db = new Option("d", "database", true, "derby database path");
     options.addOption(db);
 
-    Option dryrun = new Option("t", "dryrun", true, "run without calls to trading API");
+    Option dryrun = new Option("t", "dryrun", false, "run without calls to trading API");
     options.addOption(dryrun);
 
     CommandLineParser parser = new DefaultParser();
@@ -59,7 +59,7 @@ public class Application {
     final var cash = alpacaService.getCash();
     final var portfolio = orp.calculateWithAdjustment(cash, 0.2);
 
-    if (cmd.getOptionValue("dryrun") != null) {
+    if (cmd.hasOption("dryrun")) {
       return;
     }
 
