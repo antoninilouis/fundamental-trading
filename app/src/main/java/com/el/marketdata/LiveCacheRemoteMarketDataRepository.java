@@ -27,15 +27,17 @@ public class LiveCacheRemoteMarketDataRepository extends MarketDataRepository {
 
   private static final Logger logger = LoggerFactory.getLogger(LiveCacheRemoteMarketDataRepository.class);
   private static final FMPService fmpService = new FMPService();
-  private static final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
+  private final FundamentalTradingDbFacade fundamentalTradingDbFacade;
   private final LocalDate oldestRecord;
   private LocalDate latestRefresh;
 
   public LiveCacheRemoteMarketDataRepository(
+    final String dbpath,
     final Set<String> symbols,
     final Instant from
   ) {
     super(symbols, LocalDate.now());
+    this.fundamentalTradingDbFacade = new FundamentalTradingDbFacade(dbpath);
     this.oldestRecord = LocalDate.ofInstant(from, ZoneId.of("America/New_York"));
     this.latestRefresh = LocalDate.now();
     initialize(this.oldestRecord.atStartOfDay(ZoneId.of("America/New_York")).toInstant(), this.latestRefresh.atStartOfDay(ZoneId.of("America/New_York")).toInstant());

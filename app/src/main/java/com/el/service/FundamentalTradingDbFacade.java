@@ -26,7 +26,7 @@ public class FundamentalTradingDbFacade {
   private static final Logger logger = LoggerFactory.getLogger(FundamentalTradingDbFacade.class);
   private final Jdbi jdbi;
 
-  public FundamentalTradingDbFacade() {
+  public FundamentalTradingDbFacade(String dbpath) {
     try {
       final Properties appProps = new Properties();
 
@@ -34,7 +34,9 @@ public class FundamentalTradingDbFacade {
 
       final var user = appProps.getProperty("user");
       final var pwd = appProps.getProperty("password");
-      final var dbpath = appProps.getProperty("dbpath");
+      if (dbpath == null) {
+        dbpath = appProps.getProperty("dbpath");
+      }
       this.jdbi = Jdbi.create("jdbc:derby:" + dbpath + ";create=true", user, pwd);
       jdbi.installPlugin(new SqlObjectPlugin());
       jdbi.setSqlLogger(new Slf4JSqlLogger(logger));

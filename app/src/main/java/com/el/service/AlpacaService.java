@@ -34,7 +34,6 @@ public class AlpacaService {
   private final Logger logger = LoggerFactory.getLogger(AlpacaService.class);
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AlpacaAPI alpacaAPI = new AlpacaAPI();
-  private final FundamentalTradingDbFacade fundamentalTradingDbFacade = new FundamentalTradingDbFacade();
 
   /**
    * Tool to avoid PDT flagging
