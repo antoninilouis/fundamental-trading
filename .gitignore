@@ -24,8 +24,11 @@ hs_err_pid*
 
 #idea
 .idea/
+*.iml
 
 #derby
 derby.log
 fundamental-tradingDB
 live-fundamental-tradingDB
+
+bundle/

@@ -1,0 +1,30 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  row-gap: 10px;
+  min-height: 100vh;
+}
+
+.main h1 {
+  font-family: var(--font-mono);
+}
+
+.main button {
+  border: none;
+  padding: 10px 50px;
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  border-radius: 3px;
+  color: black;
+  cursor: pointer;
+}
+
+.btnNormal {
+  background-color: gold;
+}
+
+.btnLoading {
+  background-color: darkgray;
+}
