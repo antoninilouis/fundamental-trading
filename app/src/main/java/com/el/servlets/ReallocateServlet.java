@@ -48,6 +48,6 @@ public class ReallocateServlet extends HttpServlet {
   private boolean insideTradingHours() {
     // fail if the stock market is not open
     final LocalTime now = LocalTime.now(ZoneId.of("America/New_York"));
-    return now.isBefore(LocalTime.of(9, 30)) || now.isAfter(LocalTime.of(16, 0));
+    return now.isAfter(LocalTime.of(9, 30)) && now.isBefore(LocalTime.of(16, 0));
   }
 }

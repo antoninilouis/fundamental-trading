@@ -6,7 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public class HealthCheckServlet extends HttpServlet {
   @Override
-  protected void doPost(HttpServletRequest request, HttpServletResponse response) {
+  protected void doGet(HttpServletRequest request, HttpServletResponse response) {
     response.setStatus(HttpServletResponse.SC_OK);
   }
 }
