@@ -10,7 +10,7 @@ export default function Home() {
 
   async function load() {
     setLoading(true);
-    await fetch('http://fundamental-trading.eu-west-1.elasticbeanstalk.com/reallocate', {
+    await fetch('https://fundamental-trading.eu-west-1.elasticbeanstalk.com/reallocate', {
       method: 'POST'
     })
         .then((response) => {
