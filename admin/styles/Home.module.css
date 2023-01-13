@@ -3,7 +3,6 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  row-gap: 10px;
   min-height: 100vh;
 }
 
@@ -27,4 +26,17 @@
 
 .btnLoading {
   background-color: darkgray;
+}
+
+.relative {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  row-gap: 10px;
+}
+
+.gold {
+  color: gold;
 }

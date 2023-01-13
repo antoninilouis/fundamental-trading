@@ -1,0 +1,29 @@
+.container {
+    position: absolute;
+    top: calc(100% + 10px);
+    width: auto;
+    height: auto;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.container1 {
+    flex: 0 0 auto;
+    width: 200px;
+    display: flex;
+    padding: var(--dl-space-space-halfunit);
+    align-items: flex-start;
+    border-color: var(--dl-color-gray-black);
+    border-style: hidden;
+    border-width: 2px;
+    border-radius: var(--dl-radius-radius-radius4);
+    flex-direction: column;
+    background-color: var(--dl-color-gray-900);
+}
+
+.text {
+    width: 100%;
+    text-align: center;
+    font-family: var(--font-mono);
+}
