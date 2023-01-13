@@ -89,7 +89,10 @@ public class AlpacaService {
   public void sellPortfolio() {
     try {
       alpacaAPI.positions().closeAll(true);
-    } catch (AlpacaClientException e) {
+      while (!alpacaAPI.positions().get().isEmpty()) {
+        Thread.sleep(1000);
+      }
+    } catch (AlpacaClientException | InterruptedException e) {
       throw new RuntimeException(e);
     }
   }

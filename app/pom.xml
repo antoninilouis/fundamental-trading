@@ -108,6 +108,11 @@
       <artifactId>jetty-servlet</artifactId>
       <version>11.0.13</version>
     </dependency>
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlets</artifactId>
+      <version>11.0.13</version>
+    </dependency>
   </dependencies>
 
   <build>

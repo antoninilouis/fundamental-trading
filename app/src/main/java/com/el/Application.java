@@ -5,13 +5,16 @@ import com.el.service.AlpacaService;
 import com.el.servlets.HealthCheckServlet;
 import com.el.servlets.ReallocateServlet;
 import com.el.stockselection.EquityScreener;
+import jakarta.servlet.DispatcherType;
 import net.jacobpeterson.alpaca.rest.AlpacaClientException;
 import org.apache.commons.cli.*;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.servlet.ServletHandler;
+import org.eclipse.jetty.servlet.FilterHolder;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +26,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -79,12 +83,15 @@ public class Application {
       connector.setPort(5000);
       server.setConnectors(new Connector[]{connector});
 
-      ServletHandler servletHandler = new ServletHandler();
-      servletHandler.addServletWithMapping(HealthCheckServlet.class, "/");
+      ServletContextHandler handler = new ServletContextHandler();
+      handler.addServlet(HealthCheckServlet.class, "/");
       final var runServlet = new ReallocateServlet(dbpath);
-      servletHandler.addServletWithMapping(new ServletHolder(runServlet), "/reallocate");
+      handler.addServlet(new ServletHolder(runServlet), "/reallocate");
 
-      server.setHandler(servletHandler);
+      FilterHolder filterHolder = handler.addFilter(CrossOriginFilter.class, "/*", EnumSet.of(DispatcherType.REQUEST));
+      filterHolder.setInitParameter("allowedOrigins", "*");
+
+      server.setHandler(handler);
       server.start();
       server.join();
     }
@@ -101,13 +108,11 @@ public class Application {
     final var selection = es.screenEquities();
     final var orp = new OptimalRiskyPortfolio(marketDataRepository, selection);
     final var alpacaService = new AlpacaService();
+    alpacaService.sellPortfolio();
+
     final var cash = alpacaService.getCash();
     final var portfolio = orp.calculateWithAdjustment(cash, 0.2);
-
-    alpacaService.atBestEntryPoint(portfolio, () -> {
-      alpacaService.sellPortfolio();
-      alpacaService.buyPortfolio(portfolio, cash);
-    });
+    alpacaService.buyPortfolio(portfolio, cash);
   }
 
   private static Set<String> extractSymbols(final String fileName) {
